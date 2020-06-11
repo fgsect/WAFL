@@ -759,3 +759,7 @@ add_custom_target(RootFiles SOURCES
 	VERSION
 	vs-chromium-project.txt
 	WebAssembly.tmLanguage)
+
+add_library(afl-llvm-pass SHARED IMPORTED)
+set_target_properties(afl-llvm-pass PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/res/afl-llvm-pass.so)
+target_link_libraries(libWAVM PRIVATE afl-llvm-pass)

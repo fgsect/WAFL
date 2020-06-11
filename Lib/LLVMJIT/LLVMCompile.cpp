@@ -39,6 +39,9 @@ PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #endif
 POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
+// forward declaration for shared library
+llvm::ModulePass *createAflLlvmPass();
+
 namespace llvm {
 	class MCContext;
 }
@@ -111,6 +114,11 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 	fpm.doInitialization();
 	for(auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt)
 	{ fpm.run(*functionIt); }
+	
+	// instrument the module for AFL
+	llvm::legacy::PassManager passManager;
+	passManager.add(createAflLlvmPass());
+	passManager.run(llvmModule);
 
 	if(shouldLogMetrics)
 	{

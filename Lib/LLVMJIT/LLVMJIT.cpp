@@ -21,6 +21,9 @@ PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #include <llvm/Target/TargetMachine.h>
 POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
+// afl patch
+#include "../Programs/wavm/afl-wavm.h"
+
 namespace llvm {
 	class Constant;
 }
@@ -45,6 +48,7 @@ namespace LLVMRuntimeSymbols {
 	extern "C" int __gxx_personality_v0();
 	extern "C" void* __cxa_begin_catch(void*) throw();
 	extern "C" void __cxa_end_catch();
+	extern "C" void __emutls_get_address();
 #endif
 
 	static HashMap<std::string, void*> map = {
@@ -63,6 +67,9 @@ namespace LLVMRuntimeSymbols {
 		{"__gxx_personality_v0", (void*)&__gxx_personality_v0},
 		{"__cxa_begin_catch", (void*)&__cxa_begin_catch},
 		{"__cxa_end_catch", (void*)&__cxa_end_catch},
+		{"__afl_area_ptr", (void*)&afl_area_ptr},
+		{"__emutls_get_address", (void*)&__emutls_get_address},
+		{"__emutls_v.__afl_prev_loc", (void*)&afl_prev_loc},
 #endif
 	};
 }

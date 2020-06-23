@@ -33,6 +33,9 @@
 #include "WAVM/WASTParse/WASTParse.h"
 #include "wavm.h"
 
+// afl patch
+#include "afl-wavm.h"
+
 using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::Runtime;
@@ -822,7 +825,8 @@ struct State
 			}
 			WASI::setProcessMemory(*wasiProcess, memory);
 		}
-
+		afl_setup();
+		afl_print_map();
 		// Execute the program.
 		Timing::Timer executionTimer;
 		auto executeThunk = [&] { return execute(irModule, instance); };
@@ -843,6 +847,7 @@ struct State
 		Log::printf(
 			Log::metrics, "Peak memory usage: %" WAVM_PRIuPTR "KiB\n", peakMemoryUsage / 1024);
 
+		afl_print_map();
 		return result;
 	}
 

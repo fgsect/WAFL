@@ -34,7 +34,8 @@
 #include "wavm.h"
 
 // afl patch
-#include "afl-wavm.h"
+void afl_setup();
+void afl_print_map();
 
 using namespace WAVM;
 using namespace WAVM::IR;

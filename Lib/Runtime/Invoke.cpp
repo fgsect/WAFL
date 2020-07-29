@@ -11,6 +11,8 @@
 #include "WAVM/Runtime/Runtime.h"
 #include "WAVM/RuntimeABI/RuntimeABI.h"
 
+#include "WAVM/wavm-afl/wavm-afl.h"
+
 using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::Runtime;
@@ -88,7 +90,10 @@ void Runtime::invokeFunction(Context* context,
 	// C++ destructors on the stack between here and where it is caught.
 	unwindSignalsAsExceptions([&invokeContext] {
 		ContextRuntimeData* contextRuntimeData = getContextRuntimeData(invokeContext.context);
-
+		
+		// latest possible point to spin up the forkserver?
+		afl_forkserver();
+		
 		// Call the invoke thunk.
 		(*invokeContext.invokeThunk)(invokeContext.function,
 									 contextRuntimeData,

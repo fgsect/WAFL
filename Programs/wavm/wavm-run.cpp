@@ -733,7 +733,7 @@ struct State
 		// Allocate an array to receive the invoke results.
 		std::vector<UntaggedValue> untaggedInvokeResults;
 		untaggedInvokeResults.resize(invokeSig.results().size());
-
+		
 		// Invoke the function.
 		invokeFunction(
 			context, function, invokeSig, untaggedInvokeArgs.data(), untaggedInvokeResults.data());
@@ -763,6 +763,9 @@ struct State
 
 	int run(char** argv)
 	{
+		afl_setup();
+		//afl_print_map();
+
 		// Parse the command line.
 		if(!parseCommandLineAndEnvironment(argv)) { return EXIT_FAILURE; }
 
@@ -830,9 +833,7 @@ struct State
 			}
 			WASI::setProcessMemory(*wasiProcess, memory);
 		}
-		afl_setup();
-		//afl_print_map();
-		afl_forkserver();
+
 		// Execute the program.
 		Timing::Timer executionTimer;
 		auto executeThunk = [&] { return execute(irModule, instance); };

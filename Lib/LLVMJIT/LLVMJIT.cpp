@@ -22,7 +22,7 @@ PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
 // afl patch
-#include "afl-wavm.h"
+#include "WAVM/wavm-afl/wavm-afl.h"
 
 namespace llvm {
 	class Constant;

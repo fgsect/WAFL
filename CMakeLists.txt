@@ -712,6 +712,9 @@ add_subdirectory(Test)
 add_subdirectory(ThirdParty/BLAKE2)
 add_subdirectory(ThirdParty/liblmdb)
 
+# afl patch
+add_subdirectory(Lib/wavm-afl)
+
 if(WAVM_ENABLE_RUNTIME)
 	add_subdirectory(Include/WAVM/RuntimeABI)
 	add_subdirectory(Lib/Emscripten)
@@ -763,3 +766,7 @@ add_custom_target(RootFiles SOURCES
 add_library(afl-llvm-pass SHARED IMPORTED GLOBAL)
 set_target_properties(afl-llvm-pass PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/../afl-llvm-pass.so)
 target_link_libraries(libWAVM PRIVATE afl-llvm-pass)
+
+#add_library(afl-instrim-pass SHARED IMPORTED GLOBAL)
+#set_target_properties(afl-instrim-pass PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/../libLLVMInsTrim.so)
+#target_link_libraries(libWAVM PRIVATE afl-instrim-pass)

@@ -34,8 +34,7 @@
 #include "wavm.h"
 
 // afl patch
-void afl_setup();
-void afl_print_map();
+#include "WAVM/wavm-afl/wavm-afl.h"
 
 using namespace WAVM;
 using namespace WAVM::IR;
@@ -150,6 +149,11 @@ static bool loadPrecompiledModule(std::vector<U8>&& fileBytes,
 	{
 		// Load the IR + precompiled object code as a runtime module.
 		outModule = Runtime::loadPrecompiledModule(irModule, precompiledObjectSection->data);
+		
+		// afl patch
+		printf("loaded precompiled code, assuming it's already instrumented\n");
+		afl_is_instrumented = true;
+
 		return true;
 	}
 }
@@ -827,7 +831,8 @@ struct State
 			WASI::setProcessMemory(*wasiProcess, memory);
 		}
 		afl_setup();
-		afl_print_map();
+		//afl_print_map();
+		afl_forkserver();
 		// Execute the program.
 		Timing::Timer executionTimer;
 		auto executeThunk = [&] { return execute(irModule, instance); };
@@ -848,7 +853,7 @@ struct State
 		Log::printf(
 			Log::metrics, "Peak memory usage: %" WAVM_PRIuPTR "KiB\n", peakMemoryUsage / 1024);
 
-		afl_print_map();
+		//afl_print_map();
 		return result;
 	}
 

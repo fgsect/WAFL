@@ -26,6 +26,9 @@ else()
 	list(APPEND NonCompiledSources ${RuntimeOnlySources})
 endif()
 
+# afl patch
+list(APPEND PRIVATE_LIB_COMPONENTS wavm-afl)
+
 WAVM_ADD_EXECUTABLE(wavm
 	FOLDER Programs
 	SOURCES ${CompiledSources}

@@ -1,38 +1,21 @@
 // created by Keno Hassler, 2020
 
-#ifndef afl_wavm_h
-#define afl_wavm_h
-
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/shm.h>
 #include <sys/wait.h>
 
-/* to be removed - these should be included from afl/config.h */
-#define MAP_SIZE_POW2 16
-#define MAP_SIZE (1 << MAP_SIZE_POW2)
-#define SHM_ENV_VAR "__AFL_SHM_ID"
-#define FORKSRV_FD 198
-#define FS_OPT_ENABLED 0x80000001
-#define FS_OPT_MAPSIZE 0x40000000
-#define FS_OPT_MAX_MAPSIZE ((0x00fffffe >> 1) + 1)
-#define FS_OPT_GET_MAPSIZE(x) (((x & 0x00fffffe) >> 1) + 1)
-#define FS_OPT_SET_MAPSIZE(x) \
-  (x <= 1 || x > FS_OPT_MAX_MAPSIZE ? 0 : ((x - 1) << 1))
-#define NGRAM_SIZE_MAX 16U
+#include "WAVM/wavm-afl/wavm-afl.h"
 
-// shared map
 static uint8_t dummy[MAP_SIZE];
-static uint8_t *afl_area_ptr = dummy;
+uint8_t *afl_area_ptr = dummy;
 
-// fork server status
-static bool forkserver_installed = false;
+// prevent instrumenting more than once
+bool afl_is_instrumented = false;
 
 __thread uint16_t afl_prev_loc[NGRAM_SIZE_MAX];
-
 
 void afl_setup() {
 	// set up the shared memory region
@@ -50,6 +33,7 @@ void afl_setup() {
 }
 
 void afl_forkserver() {
+    static bool forkserver_installed = false;
 	if (forkserver_installed) return;
     forkserver_installed = true;
 
@@ -59,8 +43,9 @@ void afl_forkserver() {
         int map_size = (FS_OPT_ENABLED | FS_OPT_MAPSIZE | FS_OPT_SET_MAPSIZE(MAP_SIZE));
         memcpy(msg, &map_size, 4);
     }
+    printf("afl_forkserver(): initialised\n");
     if (write(FORKSRV_FD + 1, msg, 4) != 4) return;
-
+    printf("afl_forkserver(): entering main loop\n");
     while(true) {
         // wait for afl (ignoring the answer for now)
         if (read(FORKSRV_FD, msg, 4) != 4) exit(EXIT_FAILURE);
@@ -94,5 +79,3 @@ void afl_print_map() {
     }
     printf("--------------------------------------\n");
 }
-
-#endif // afl_wavm_h

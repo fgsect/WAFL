@@ -22,6 +22,16 @@ extern "C" {
 #define FS_OPT_SET_MAPSIZE(x) \
   (x <= 1 || x > FS_OPT_MAX_MAPSIZE ? 0 : ((x - 1) << 1))
 #define NGRAM_SIZE_MAX 16U
+#define PERSIST_SIG "##SIG_AFL_PERSISTENT##"
+#define PERSIST_ENV_VAR "__AFL_PERSISTENT"
+
+/* need to keep this as it's only visible inside llvm mode */
+#define __AFL_LOOP(_A)                                        \
+      ({ static volatile char *_B __attribute__((used));      \
+       _B = (char*) PERSIST_SIG;                              \
+      __attribute__((visibility("default")))                  \
+      int _L(unsigned int) __asm__("__afl_persistent_loop"); \
+      _L(_A); })
 
 extern uint8_t *afl_area_ptr;
 

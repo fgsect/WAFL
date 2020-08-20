@@ -838,6 +838,7 @@ struct State
 		Timing::Timer executionTimer;
 		auto executeThunk = [&] { return execute(irModule, instance); };
 		int result;
+		while (__AFL_LOOP(10000)) {
 		if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
 		else if(wasiProcess)
 		{

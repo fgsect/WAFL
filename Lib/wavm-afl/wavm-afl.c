@@ -89,7 +89,6 @@ void afl_forkserver() {
                currently stopped, simply restart it with SIGCONT. */
             kill(child_pid, SIGCONT);
             child_stopped = false;
-            printf("child resumed\n");
         }
         
         /* In parent process: write PID to pipe, then wait for child. */
@@ -101,7 +100,6 @@ void afl_forkserver() {
            a successful run. In this case, we want to wake it up without forking
            again. */
         if (WIFSTOPPED(status)) child_stopped = true;
-        printf("___child stopped = %s ___\n", child_stopped? "true" : "false");
         
         /* Relay wait status to pipe, then loop back. */
         if (write(FORKSRV_FD + 1, &status, 4) != 4) exit(EXIT_FAILURE);
@@ -110,17 +108,22 @@ void afl_forkserver() {
 
 void afl_print_map() {
     printf("AFL shared map state (only hit cells):\n");
+    int cnt = 0;
+    long sum = 0;
     for (unsigned i = 0; i < MAP_SIZE; i++) {
         if (afl_area_ptr[i] > 0) {
-            printf("[%i]\t%i\n", i, afl_area_ptr[i]);
+            //printf("[%i]\t%i\n", i, afl_area_ptr[i]);
+            cnt ++;
+            sum += afl_area_ptr[i];
         }
     }
-    printf("--------------------------------------\n");
+    printf("=== TOTAL %i CELLS: %li ===\n", cnt, sum);
 }
 
 int __afl_persistent_loop(unsigned int max_cnt) {
     static bool first_pass = true;
     static unsigned cycle_cnt;
+    //printf("#afl_loop cycle %u\n", cycle_cnt);
     
     if (first_pass) {
         if (afl_is_persistent) {

@@ -123,6 +123,7 @@ void afl_print_map() {
 int __afl_persistent_loop(unsigned int max_cnt) {
     static bool first_pass = true;
     static unsigned cycle_cnt;
+    //afl_print_map();
     //printf("#afl_loop cycle %u\n", cycle_cnt);
     
     if (first_pass) {

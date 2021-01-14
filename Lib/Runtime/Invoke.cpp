@@ -92,7 +92,7 @@ void Runtime::invokeFunction(Context* context,
 		ContextRuntimeData* contextRuntimeData = getContextRuntimeData(invokeContext.context);
 		
 		// latest possible point to spin up the forkserver?
-		afl_forkserver();
+		//afl_forkserver();
 		
 		// Call the invoke thunk.
 		(*invokeContext.invokeThunk)(invokeContext.function,

@@ -437,3 +437,25 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 
 	throwException(ExceptionTypes::outOfBoundsMemoryAccess, {memory, outOfBoundsAddress});
 }
+
+// allocate a buffer and copy the memory content into it
+int Runtime::backupCopy(const Memory* orig, std::unique_ptr<uint8_t>& byteBuffer) {
+	const auto numBytes = orig->numPages * IR::numBytesPerPage;
+	
+	byteBuffer = std::unique_ptr<uint8_t> {new uint8_t[numBytes]};
+	memcpy(byteBuffer.get(), orig->baseAddress, numBytes);
+
+	return orig->numPages;
+}
+
+// copy the buffer back into the memory object
+void Runtime::restoreCopy(Memory* mem, const std::unique_ptr<uint8_t>& byteBuffer, const int bufNumPages) {
+	const auto numBytes = bufNumPages * IR::numBytesPerPage;
+	memcpy(mem->baseAddress, byteBuffer.get(), numBytes);
+	
+	const auto pages = getMemoryNumPages(mem);
+	//printf("calling unmapMemoryPages(%p, %i, %lu)\n", mem, bufNumPages, pages - bufNumPages);
+	unmapMemoryPages(mem, bufNumPages, pages - bufNumPages);
+
+	mem->numPages = bufNumPages;
+}

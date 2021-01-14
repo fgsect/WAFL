@@ -834,10 +834,19 @@ struct State
 			WASI::setProcessMemory(*wasiProcess, memory);
 		}
 
+		std::unique_ptr<uint8_t> memBackup;
+		int numPagesBackup = -1;
+
+		if (wasiProcess) {
+			numPagesBackup = backupCopy(WASI::getProcessMemory(*wasiProcess), memBackup);
+		}
+
 		// Execute the program.
 		Timing::Timer executionTimer;
 		auto executeThunk = [&] { return execute(irModule, instance); };
 		int result;
+
+		afl_forkserver();
 		while (__AFL_LOOP(10000)) {
 		if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
 		else if(wasiProcess)
@@ -848,6 +857,12 @@ struct State
 		{
 			result = executeThunk();
 		}
+
+		if (wasiProcess) {
+			restoreCopy(WASI::getProcessMemory(*wasiProcess), memBackup, numPagesBackup);
+		}
+		}
+		
 		Timing::logTimer("Executed program", executionTimer);
 
 		// Log the peak memory usage.

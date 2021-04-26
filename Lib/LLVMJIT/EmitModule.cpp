@@ -129,6 +129,9 @@ void LLVMJIT::emitModule(const IR::Module& irModule,
 	Timing::Timer emitTimer;
 	EmitModuleContext moduleContext(irModule, llvmContext, &outLLVMModule, targetMachine);
 
+	DisassemblyNames names;
+	IR::getDisassemblyNames(irModule, names);
+
 	// Set the module data layout for the target machine.
 	outLLVMModule.setDataLayout(targetMachine->createDataLayout());
 
@@ -251,9 +254,10 @@ void LLVMJIT::emitModule(const IR::Module& irModule,
 		llvm::Function* function = llvm::Function::Create(
 			asLLVMType(llvmContext, functionType),
 			llvm::Function::ExternalLinkage,
-			functionIndex >= irModule.functions.imports.size()
+			/* functionIndex >= irModule.functions.imports.size()
 				? getExternalName("functionDef", functionIndex - irModule.functions.imports.size())
-				: getExternalName("functionImport", functionIndex),
+				: getExternalName("functionImport", functionIndex), */
+			names.functions[functionIndex].name,
 			&outLLVMModule);
 		function->setCallingConv(asLLVMCallingConv(functionType.callingConvention()));
 		moduleContext.functions[functionIndex] = function;

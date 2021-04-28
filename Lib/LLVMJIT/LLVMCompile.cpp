@@ -122,8 +122,8 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 	// instrument the module for AFL exactly once
 	if (!afl_is_instrumented) {
 		llvm::legacy::PassManager passManager;
-		passManager.add(createAflLlvmPass());
-		//passManager.add(createAflInsTrimPass());
+		//passManager.add(createAflLlvmPass());
+		passManager.add(createAflInsTrimPass());
 		passManager.run(llvmModule);
 		afl_is_instrumented = true;
 	}

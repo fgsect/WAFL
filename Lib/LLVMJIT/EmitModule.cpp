@@ -254,10 +254,9 @@ void LLVMJIT::emitModule(const IR::Module& irModule,
 		llvm::Function* function = llvm::Function::Create(
 			asLLVMType(llvmContext, functionType),
 			llvm::Function::ExternalLinkage,
-			/* functionIndex >= irModule.functions.imports.size()
-				? getExternalName("functionDef", functionIndex - irModule.functions.imports.size())
-				: getExternalName("functionImport", functionIndex), */
-			names.functions[functionIndex].name,
+			functionIndex >= irModule.functions.imports.size()
+				? names.functions[functionIndex].name /* getExternalName("functionDef", functionIndex - irModule.functions.imports.size()) */
+				: getExternalName("functionImport", functionIndex),
 			&outLLVMModule);
 		function->setCallingConv(asLLVMCallingConv(functionType.callingConvention()));
 		moduleContext.functions[functionIndex] = function;

@@ -459,3 +459,43 @@ void Runtime::restoreCopy(Memory* mem, const std::unique_ptr<uint8_t>& byteBuffe
 
 	mem->numPages = bufNumPages;
 }
+
+void Runtime::printRuntimeData(Compartment* compartment) {
+	CompartmentRuntimeData* runtimeData = compartment->runtimeData;
+	printf("====== RUNTIME DATA ======\n");
+
+	printf("memories[%lu]: %p\n", compartment->memories.size(), runtimeData->memories);
+	for (size_t i = 0; i < compartment->memories.size(); i++)
+	{
+		printf("%lu\t%lu\n", i, runtimeData->memories[i].numPages.load());
+	}
+
+	printf("tables[%lu]: %p\n", compartment->tables.size(), runtimeData->tables);
+	for (size_t i = 0; i < compartment->tables.size(); i++)
+	{
+		printf("%lu\t%lu\n", i, runtimeData->tables[i].endIndex);
+	}
+
+	printf("contexts[%lu]: %p\n", compartment->contexts.size(), runtimeData->contexts);
+	for (size_t i = 0; i < compartment->contexts.size(); i++)
+	{
+		// go through all globals in this context, find the mutable ones, get their values
+		std::vector<IR::Value> globals;
+		for (size_t j = 0; j < compartment->globals.size(); j++)
+		{
+			if (compartment->globals[j]->type.isMutable) {
+				auto idx = compartment->globals[j]->mutableGlobalIndex;
+				auto type = compartment->globals[j]->type.valueType;
+
+				auto globalValue = IR::Value(type, runtimeData->contexts[i].mutableGlobals[idx]);
+				//auto initial = IR::Value(type, compartment->globals[j]->initialValue);
+				globals.push_back(globalValue);
+				//globals.push_back(initial);
+			}		
+		}
+
+		printf("%lu\t%s\n", i, IR::asString(globals).c_str());
+	}
+
+	printf("--------------------------\n");
+}

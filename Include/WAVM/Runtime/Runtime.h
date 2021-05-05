@@ -399,6 +399,7 @@ namespace WAVM { namespace Runtime {
 
 	WAVM_API int backupCopy(const Memory* orig, std::unique_ptr<uint8_t>& byteBuffer);
 	WAVM_API void restoreCopy(Memory* mem, const std::unique_ptr<uint8_t>& byteBuffer, const int numBytes);
+	WAVM_API void printRuntimeData(Compartment* compartment);
 
 	//
 	// Globals

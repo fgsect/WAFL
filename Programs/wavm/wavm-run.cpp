@@ -841,6 +841,8 @@ struct State
 			numPagesBackup = backupCopy(WASI::getProcessMemory(*wasiProcess), memBackup);
 		}
 
+		printRuntimeData(compartment);
+
 		// Execute the program.
 		Timing::Timer executionTimer;
 		auto executeThunk = [&] { return execute(irModule, instance); };
@@ -870,6 +872,7 @@ struct State
 		Log::printf(
 			Log::metrics, "Peak memory usage: %" WAVM_PRIuPTR "KiB\n", peakMemoryUsage / 1024);
 
+		printRuntimeData(compartment);
 		//afl_print_map();
 		return result;
 	}

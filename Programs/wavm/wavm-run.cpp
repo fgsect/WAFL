@@ -763,9 +763,6 @@ struct State
 
 	int run(char** argv)
 	{
-		afl_setup();
-		//afl_print_map();
-
 		// Parse the command line.
 		if(!parseCommandLineAndEnvironment(argv)) { return EXIT_FAILURE; }
 
@@ -848,8 +845,8 @@ struct State
 		auto executeThunk = [&] { return execute(irModule, instance); };
 		int result;
 
-		afl_forkserver();
-		while (__AFL_LOOP(10000)) {
+		afl_init();
+		while (afl_persistent_loop(10000)) {
 		if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
 		else if(wasiProcess)
 		{

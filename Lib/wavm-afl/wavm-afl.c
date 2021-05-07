@@ -10,33 +10,36 @@
 
 #include "WAVM/wavm-afl/wavm-afl.h"
 
-static uint8_t dummy[MAP_SIZE];
-uint8_t *afl_area_ptr = dummy;
-
-__thread uint16_t afl_prev_loc[NGRAM_SIZE_MAX];
-
-bool afl_is_persistent;
 
 // prevent instrumenting more than once
 bool afl_is_instrumented = false;
 
-void afl_setup() {
-	// set up the shared memory region
+static uint8_t afl_area_ptr_dummy[MAP_SIZE];
+uint8_t *afl_area_ptr = afl_area_ptr_dummy;
+__thread PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
+
+static bool is_persistent;
+
+void afl_map_shm() {
+
     char *id_str = getenv(SHM_ENV_VAR);
+
     if (id_str) {
-        int shm_id = atoi(id_str);
+
+        uint32_t shm_id = atoi(id_str);
         afl_area_ptr = (uint8_t*) shmat(shm_id, NULL, 0);
 
-        if ((uint8_t*) -1 == afl_area_ptr) {
-            perror("afl_setup(): memory mapping failed.");
+        /* Whooooops. */
+
+        if (!afl_area_ptr || afl_area_ptr == (void*) -1) {
+            perror("afl_map_shm(): shmat failed.");
             exit(EXIT_FAILURE);
         }
+
     }
-    afl_is_persistent = getenv(PERSIST_ENV_VAR);
-    printf("finished afl_setup, persistent == %s\n", afl_is_persistent? "true" : "false");
 }
 
-void afl_forkserver() {
+void afl_start_forkserver() {
     static bool forkserver_installed = false;
     if (forkserver_installed) return;
     forkserver_installed = true;
@@ -47,7 +50,7 @@ void afl_forkserver() {
     }
 
     /* Phone home and tell the parent that we're OK. If parent isn't there,
-     assume we're not running in forkserver mode and just execute program. */
+       assume we're not running in forkserver mode and just execute program. */
     if (write(FORKSRV_FD + 1, &flags, 4) != 4) return;
 
 
@@ -93,7 +96,7 @@ void afl_forkserver() {
         
         /* In parent process: write PID to pipe, then wait for child. */
         if (write(FORKSRV_FD + 1, &child_pid, 4) != 4) exit(EXIT_FAILURE);
-        if (waitpid(child_pid, &status, afl_is_persistent ? WUNTRACED : 0) < 0)
+        if (waitpid(child_pid, &status, is_persistent ? WUNTRACED : 0) < 0)
             exit(EXIT_FAILURE);
 
         /* In persistent mode, the child stops itself with SIGSTOP to indicate
@@ -106,44 +109,67 @@ void afl_forkserver() {
     }
 }
 
+void afl_init() {
+    is_persistent = getenv(PERSIST_ENV_VAR);
+
+    afl_map_shm();
+    afl_start_forkserver();
+
+    printf("finished afl_init, persistent mode %s\n", is_persistent? "enabled" : "disabled");
+}
+
+bool afl_persistent_loop(uint32_t max_cnt) {
+
+    static bool first_pass = true;
+    static uint32_t cycle_cnt;
+
+    if (first_pass) {
+
+        /* No instrumented code runs before the loop, no need to clean up */
+        if (is_persistent) {
+            //memset(afl_area_ptr, 0, MAP_SIZE);
+            afl_area_ptr[0] = 1;
+            //memset(afl_prev_loc, 0, NGRAM_SIZE_MAX * sizeof(PREV_LOC_T));
+        }
+
+        cycle_cnt = max_cnt;
+        first_pass = false;
+
+        return true;
+    }
+
+    if (is_persistent) {
+        if (--cycle_cnt) {
+
+            raise(SIGSTOP);
+
+            afl_area_ptr[0] = 1;
+            memset(afl_prev_loc, 0, NGRAM_SIZE_MAX * sizeof(PREV_LOC_T));
+
+            return true;
+
+        } else {
+
+            /* after the loop, there is no instrumented code either */
+            //afl_area_ptr = afl_area_ptr_dummy;
+
+        }
+    }
+
+    return false;
+}
+
+
 void afl_print_map() {
     printf("AFL shared map state (only hit cells):\n");
     int cnt = 0;
     long sum = 0;
     for (unsigned i = 0; i < MAP_SIZE; i++) {
         if (afl_area_ptr[i] > 0) {
-            //printf("[%i]\t%i\n", i, afl_area_ptr[i]);
+            printf("[%i]\t%i\n", i, afl_area_ptr[i]);
             cnt ++;
             sum += afl_area_ptr[i];
         }
     }
     printf("=== TOTAL %i CELLS: %li ===\n", cnt, sum);
-}
-
-int __afl_persistent_loop(unsigned int max_cnt) {
-    static bool first_pass = true;
-    static unsigned cycle_cnt;
-    //afl_print_map();
-    //printf("#afl_loop cycle %u\n", cycle_cnt);
-    
-    if (first_pass) {
-        if (afl_is_persistent) {
-            afl_area_ptr[0] = 1;
-        }
-
-        cycle_cnt = max_cnt;
-        first_pass = false;
-        return 1;
-    }
-
-    if (afl_is_persistent) {
-        if (--cycle_cnt) {
-            raise(SIGSTOP);
-            afl_area_ptr[0] = 1;
-
-            return 1;
-        }
-    }
-
-    return 0;
 }

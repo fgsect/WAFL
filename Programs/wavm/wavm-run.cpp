@@ -835,7 +835,7 @@ struct State
 		int numPagesBackup = -1;
 
 		if (wasiProcess) {
-			numPagesBackup = backupCopy(WASI::getProcessMemory(*wasiProcess), memBackup);
+			numPagesBackup = createSnapshot(compartment, memBackup);
 		}
 
 		printRuntimeData(compartment);
@@ -858,8 +858,9 @@ struct State
 		}
 
 		if (wasiProcess) {
-			restoreCopy(WASI::getProcessMemory(*wasiProcess), memBackup, numPagesBackup);
+			restoreSnapshot(compartment, memBackup, numPagesBackup);
 		}
+		printRuntimeData(compartment);
 		}
 		
 		Timing::logTimer("Executed program", executionTimer);
@@ -869,7 +870,7 @@ struct State
 		Log::printf(
 			Log::metrics, "Peak memory usage: %" WAVM_PRIuPTR "KiB\n", peakMemoryUsage / 1024);
 
-		printRuntimeData(compartment);
+		//printRuntimeData(compartment);
 		return result;
 	}
 

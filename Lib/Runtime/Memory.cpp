@@ -438,26 +438,69 @@ WAVM_DEFINE_INTRINSIC_FUNCTION(wavmIntrinsics,
 	throwException(ExceptionTypes::outOfBoundsMemoryAccess, {memory, outOfBoundsAddress});
 }
 
-// allocate a buffer and copy the memory content into it
-int Runtime::backupCopy(const Memory* orig, std::unique_ptr<uint8_t>& byteBuffer) {
-	const auto numBytes = orig->numPages * IR::numBytesPerPage;
-	
-	byteBuffer = std::unique_ptr<uint8_t> {new uint8_t[numBytes]};
-	memcpy(byteBuffer.get(), orig->baseAddress, numBytes);
+/* copy the content of mem into a new buffer */
+uint8_t* membackup(Memory* mem, uintptr_t* out_numPages)
+{
+	const uintptr_t numPages = getMemoryNumPages(mem);
 
-	return orig->numPages;
+	uint8_t* buf = new uint8_t[numPages * IR::numBytesPerPage];
+	memcpy(buf, getMemoryBaseAddress(mem), numPages * IR::numBytesPerPage);
+
+	if(out_numPages) { *out_numPages = numPages; }
+	return buf;
 }
 
-// copy the buffer back into the memory object
-void Runtime::restoreCopy(Memory* mem, const std::unique_ptr<uint8_t>& byteBuffer, const int bufNumPages) {
-	const auto numBytes = bufNumPages * IR::numBytesPerPage;
-	memcpy(mem->baseAddress, byteBuffer.get(), numBytes);
-	
-	const auto pages = getMemoryNumPages(mem);
-	//printf("calling unmapMemoryPages(%p, %i, %lu)\n", mem, bufNumPages, pages - bufNumPages);
-	unmapMemoryPages(mem, bufNumPages, pages - bufNumPages);
+/* copy buf back into mem, grow/shrink mem as needed */
+void memrestore(Memory* mem, uint8_t* buf, const uintptr_t n)
+{
+	const uintptr_t old_numPages = getMemoryNumPages(mem);
 
-	mem->numPages = bufNumPages;
+	if(n > old_numPages)
+	{
+		printf("memrestore: growing memory from %lu to %lu pages\n", old_numPages, n);
+		growMemory(mem, n - old_numPages, NULL);
+	}
+	else if(n < old_numPages)
+	{
+		printf("memrestore: shrinking memory from %lu to %lu pages\n", old_numPages, n);
+		unmapMemoryPages(mem, n, old_numPages - n);
+	}
+
+	memcpy(getMemoryBaseAddress(mem), buf, n * IR::numBytesPerPage);
+	mem->numPages = n;
+}
+
+int Runtime::createSnapshot(Compartment* compartment, std::unique_ptr<uint8_t>& byteBuffer)
+{
+	if(compartment->memories.size() != 1)
+	{
+		fprintf(stderr, "snapshot failed, size=%lu\n", compartment->memories.size());
+		return -1;
+	}
+
+	uintptr_t numPages;
+	byteBuffer = std::unique_ptr<uint8_t>{membackup(compartment->memories[0], &numPages)};
+	return numPages;
+}
+
+void Runtime::restoreSnapshot(Compartment* compartment,
+							  const std::unique_ptr<uint8_t>& byteBuffer,
+							  const int bufNumPages)
+{
+	if(compartment->memories.size() != 1)
+	{
+		fprintf(stderr, "restore failed, size=%lu\n", compartment->memories.size());
+		return;
+	}
+
+	memrestore(compartment->memories[0], byteBuffer.get(), bufNumPages);
+	compartment->runtimeData->memories[0].numPages.store(bufNumPages);
+
+	// invalidate contextRuntimeData and delete the contexts (usually just 1)
+	for(size_t i = 0; i < compartment->contexts.size(); i++)
+	{ compartment->runtimeData->contexts[i].context = NULL; }
+	for(auto i = compartment->contexts.begin(); i != compartment->contexts.end(); ++i)
+	{ compartment->contexts.removeOrFail(i.getIndex()); }
 }
 
 void Runtime::printRuntimeData(Compartment* compartment) {

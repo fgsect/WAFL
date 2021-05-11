@@ -397,9 +397,11 @@ namespace WAVM { namespace Runtime {
 		return (Value*)getValidatedMemoryOffsetRange(memory, offset, numElements * sizeof(Value));
 	}
 
-	WAVM_API int backupCopy(const Memory* orig, std::unique_ptr<uint8_t>& byteBuffer);
-	WAVM_API void restoreCopy(Memory* mem, const std::unique_ptr<uint8_t>& byteBuffer, const int numBytes);
 	WAVM_API void printRuntimeData(Compartment* compartment);
+	WAVM_API void restoreSnapshot(Compartment* compartment,
+								  const std::unique_ptr<uint8_t>& byteBuffer,
+								  const int numBytes);
+	WAVM_API int createSnapshot(Compartment* compartment, std::unique_ptr<uint8_t>& byteBuffer);
 
 	//
 	// Globals

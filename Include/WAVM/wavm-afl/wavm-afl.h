@@ -38,7 +38,7 @@ extern __thread PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
 void afl_init();
 bool afl_persistent_loop(uint32_t max_cnt);
 
-void afl_print_map();
+void* fake_emutls(void* ptr);
 
 #ifdef __cplusplus
 }

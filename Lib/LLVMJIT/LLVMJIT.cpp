@@ -48,7 +48,6 @@ namespace LLVMRuntimeSymbols {
 	extern "C" int __gxx_personality_v0();
 	extern "C" void* __cxa_begin_catch(void*) throw();
 	extern "C" void __cxa_end_catch();
-	extern "C" void __emutls_get_address();
 #endif
 
 	static HashMap<std::string, void*> map = {
@@ -68,8 +67,8 @@ namespace LLVMRuntimeSymbols {
 		{"__cxa_begin_catch", (void*)&__cxa_begin_catch},
 		{"__cxa_end_catch", (void*)&__cxa_end_catch},
 		{"__afl_area_ptr", (void*)&afl_area_ptr},
-		{"__emutls_get_address", (void*)&__emutls_get_address},
 		{"__emutls_v.__afl_prev_loc", (void*)&afl_prev_loc},
+		{"__emutls_get_address", (void*)&fake_emutls},
 #endif
 	};
 }

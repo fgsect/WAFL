@@ -870,7 +870,6 @@ struct State
 			Log::metrics, "Peak memory usage: %" WAVM_PRIuPTR "KiB\n", peakMemoryUsage / 1024);
 
 		printRuntimeData(compartment);
-		//afl_print_map();
 		return result;
 	}
 

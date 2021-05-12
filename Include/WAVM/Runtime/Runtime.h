@@ -401,7 +401,8 @@ namespace WAVM { namespace Runtime {
 	WAVM_API void restoreSnapshot(Compartment* compartment,
 								  const std::unique_ptr<uint8_t>& byteBuffer,
 								  const int numBytes);
-	WAVM_API int createSnapshot(Compartment* compartment, std::unique_ptr<uint8_t>& byteBuffer);
+	WAVM_API uintptr_t createSnapshot(Compartment* compartment,
+									  std::unique_ptr<uint8_t>& byteBuffer);
 
 	//
 	// Globals

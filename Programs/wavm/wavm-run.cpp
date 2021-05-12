@@ -149,7 +149,7 @@ static bool loadPrecompiledModule(std::vector<U8>&& fileBytes,
 	{
 		// Load the IR + precompiled object code as a runtime module.
 		outModule = Runtime::loadPrecompiledModule(irModule, precompiledObjectSection->data);
-		
+
 		// afl patch
 		printf("loaded precompiled code, assuming it's already instrumented\n");
 		afl_is_instrumented = true;
@@ -733,7 +733,7 @@ struct State
 		// Allocate an array to receive the invoke results.
 		std::vector<UntaggedValue> untaggedInvokeResults;
 		untaggedInvokeResults.resize(invokeSig.results().size());
-		
+
 		// Invoke the function.
 		invokeFunction(
 			context, function, invokeSig, untaggedInvokeArgs.data(), untaggedInvokeResults.data());
@@ -832,12 +832,7 @@ struct State
 		}
 
 		std::unique_ptr<uint8_t> memBackup;
-		int numPagesBackup = -1;
-
-		if (wasiProcess) {
-			numPagesBackup = createSnapshot(compartment, memBackup);
-		}
-
+		uintptr_t numPagesBackup = createSnapshot(compartment, memBackup);
 		printRuntimeData(compartment);
 
 		// Execute the program.
@@ -846,7 +841,8 @@ struct State
 		int result;
 
 		afl_init();
-		while (afl_persistent_loop(10000)) {
+		while(afl_persistent_loop(10000))
+		{
 		if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
 		else if(wasiProcess)
 		{
@@ -857,12 +853,10 @@ struct State
 			result = executeThunk();
 		}
 
-		if (wasiProcess) {
-			restoreSnapshot(compartment, memBackup, numPagesBackup);
-		}
+		restoreSnapshot(compartment, memBackup, numPagesBackup);
 		printRuntimeData(compartment);
 		}
-		
+
 		Timing::logTimer("Executed program", executionTimer);
 
 		// Log the peak memory usage.
@@ -870,7 +864,6 @@ struct State
 		Log::printf(
 			Log::metrics, "Peak memory usage: %" WAVM_PRIuPTR "KiB\n", peakMemoryUsage / 1024);
 
-		//printRuntimeData(compartment);
 		return result;
 	}
 

@@ -470,15 +470,15 @@ void memrestore(Memory* mem, uint8_t* buf, const uintptr_t n)
 	mem->numPages = n;
 }
 
-int Runtime::createSnapshot(Compartment* compartment, std::unique_ptr<uint8_t>& byteBuffer)
+uintptr_t Runtime::createSnapshot(Compartment* compartment, std::unique_ptr<uint8_t>& byteBuffer)
 {
 	if(compartment->memories.size() != 1)
 	{
 		fprintf(stderr, "snapshot failed, size=%lu\n", compartment->memories.size());
-		return -1;
+		return 0;
 	}
 
-	uintptr_t numPages;
+	uintptr_t numPages = 0;
 	byteBuffer = std::unique_ptr<uint8_t>{membackup(compartment->memories[0], &numPages)};
 	return numPages;
 }
@@ -503,40 +503,37 @@ void Runtime::restoreSnapshot(Compartment* compartment,
 	{ compartment->contexts.removeOrFail(i.getIndex()); }
 }
 
-void Runtime::printRuntimeData(Compartment* compartment) {
+void Runtime::printRuntimeData(Compartment* compartment)
+{
 	CompartmentRuntimeData* runtimeData = compartment->runtimeData;
 	printf("====== RUNTIME DATA ======\n");
 
 	printf("memories[%lu]: %p\n", compartment->memories.size(), runtimeData->memories);
-	for (size_t i = 0; i < compartment->memories.size(); i++)
-	{
-		printf("%lu\t%lu\n", i, runtimeData->memories[i].numPages.load());
-	}
+	for(size_t i = 0; i < compartment->memories.size(); i++)
+	{ printf("%lu\t%lu\n", i, runtimeData->memories[i].numPages.load()); }
 
 	printf("tables[%lu]: %p\n", compartment->tables.size(), runtimeData->tables);
-	for (size_t i = 0; i < compartment->tables.size(); i++)
-	{
-		printf("%lu\t%lu\n", i, runtimeData->tables[i].endIndex);
-	}
+	for(size_t i = 0; i < compartment->tables.size(); i++)
+	{ printf("%lu\t%lu\n", i, runtimeData->tables[i].endIndex); }
 
 	printf("contexts[%lu]: %p\n", compartment->contexts.size(), runtimeData->contexts);
-	for (size_t i = 0; i < compartment->contexts.size(); i++)
+	for(size_t i = 0; i < compartment->contexts.size(); i++)
 	{
 		// go through all globals in this context, find the mutable ones, get their values
 		std::vector<IR::Value> globals;
-		for (size_t j = 0; j < compartment->globals.size(); j++)
+		for(size_t j = 0; j < compartment->globals.size(); j++)
 		{
-			if (compartment->globals[j]->type.isMutable) {
+			if(compartment->globals[j]->type.isMutable)
+			{
 				auto idx = compartment->globals[j]->mutableGlobalIndex;
 				auto type = compartment->globals[j]->type.valueType;
 
 				auto globalValue = IR::Value(type, runtimeData->contexts[i].mutableGlobals[idx]);
-				//auto initial = IR::Value(type, compartment->globals[j]->initialValue);
+				// auto initial = IR::Value(type, compartment->globals[j]->initialValue);
 				globals.push_back(globalValue);
-				//globals.push_back(initial);
-			}		
+				// globals.push_back(initial);
+			}
 		}
-
 		printf("%lu\t%s\n", i, IR::asString(globals).c_str());
 	}
 

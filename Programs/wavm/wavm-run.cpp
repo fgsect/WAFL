@@ -843,18 +843,18 @@ struct State
 		afl_init();
 		while(afl_persistent_loop(10000))
 		{
-		if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
-		else if(wasiProcess)
-		{
-			result = WASI::catchExit(std::move(executeThunk));
-		}
-		else
-		{
-			result = executeThunk();
-		}
+			if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
+			else if(wasiProcess)
+			{
+				result = WASI::catchExit(std::move(executeThunk));
+			}
+			else
+			{
+				result = executeThunk();
+			}
 
-		restoreSnapshot(compartment, memBackup, numPagesBackup);
-		printRuntimeData(compartment);
+			restoreSnapshot(compartment, memBackup, numPagesBackup);
+			printRuntimeData(compartment);
 		}
 
 		Timing::logTimer("Executed program", executionTimer);

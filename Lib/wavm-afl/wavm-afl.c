@@ -40,10 +40,6 @@ void afl_map_shm()
 
 void afl_start_forkserver()
 {
-	static bool forkserver_installed = false;
-	if(forkserver_installed) return;
-	forkserver_installed = true;
-
 	uint32_t flags = 0;
 	if(MAP_SIZE <= FS_OPT_MAX_MAPSIZE) { flags |= (FS_OPT_MAPSIZE | FS_OPT_SET_MAPSIZE(MAP_SIZE)); }
 	if(flags) { flags |= FS_OPT_ENABLED; }
@@ -119,10 +115,15 @@ void afl_start_forkserver()
 
 void afl_init()
 {
-	is_persistent = getenv(PERSIST_ENV_VAR);
+	static bool init_done = false;
 
-	afl_map_shm();
-	afl_start_forkserver();
+	if(!init_done)
+	{
+		is_persistent = getenv(PERSIST_ENV_VAR);
+		afl_map_shm();
+		afl_start_forkserver();
+		init_done = true;
+	}
 
 	printf("finished afl_init, persistent mode %s\n", is_persistent ? "enabled" : "disabled");
 }

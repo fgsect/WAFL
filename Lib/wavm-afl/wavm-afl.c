@@ -19,6 +19,8 @@ __thread PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
 
 static bool is_persistent;
 
+uint32_t trace_pc_guard_dummy;
+
 void afl_map_shm()
 {
 	char* id_str = getenv(SHM_ENV_VAR);
@@ -174,6 +176,33 @@ bool afl_persistent_loop(uint32_t max_cnt)
    This is only used for afl_prev_loc to support resets in persistent mode.
    Since it is declared thread-local, there should be no concurrency issues. */
 void* fake_emutls(void* ptr) { return ptr == afl_prev_loc ? ptr : NULL; }
+
+/* callback for LLVM's trace_pc_guard instrumentation */
+void trace_pc_guard(uint32_t* guard)
+{
+	printf("trace_pc_guard called with guard=%u", *guard);
+	if(*guard == 0)
+	{
+		/* The proper init function is never called, so all guards are 0 initially.
+		   Thus, calculate a stable index for each guard from their address:
+		   - subtract an offset pointer (stabilize against random mapping)
+		   - divide by 4 (because guard is 32 bits)
+		   - modulo MAP_SIZE. */
+
+		const uintptr_t guard_id = (uintptr_t)&trace_pc_guard_dummy - (uintptr_t)guard;
+		*guard = (guard_id >> 2) & (MAP_SIZE - 1);
+		printf(" -> initialized to %u, id was %lx", *guard, guard_id);
+	}
+	printf("\n");
+	afl_area_ptr[*guard]++;
+}
+
+/* callback stub for init */
+void trace_pc_guard_init(uint32_t* start, uint32_t* stop)
+{
+	fprintf(stderr, "trace_pc_guard_init not implemented\n");
+	exit(EXIT_FAILURE);
+}
 
 /* DEBUG */
 void afl_print_map()

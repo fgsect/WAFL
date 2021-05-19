@@ -39,12 +39,15 @@ PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #endif
 POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
-// afl: forward declarations for shared library
-llvm::ModulePass *createAflLlvmPass();
-llvm::ModulePass *createAflInsTrimPass();
-
-// afl patch
+// afl header
 #include "WAVM/wavm-afl/wavm-afl.h"
+
+// afl: support for trace_pc_guard
+#include <llvm/Transforms/Instrumentation/SanitizerCoverage.h>
+
+// afl: forward declarations for shared library
+llvm::ModulePass* createAflLlvmPass();
+llvm::ModulePass* createAflInsTrimPass();
 
 namespace llvm {
 	class MCContext;
@@ -118,16 +121,23 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 	fpm.doInitialization();
 	for(auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt)
 	{ fpm.run(*functionIt); }
-	
+
 	// instrument the module for AFL exactly once
-	if (!afl_is_instrumented) {
+	if(!afl_is_instrumented)
+	{
 		llvm::legacy::PassManager passManager;
-		//passManager.add(createAflLlvmPass());
-		passManager.add(createAflInsTrimPass());
+		// passManager.add(createAflLlvmPass());
+		// passManager.add(createAflInsTrimPass());
+
+		llvm::SanitizerCoverageOptions options;
+		options.CoverageType = llvm::SanitizerCoverageOptions::SCK_Edge;
+		options.TracePCGuard = true;
+		passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(options));
+
 		passManager.run(llvmModule);
 		afl_is_instrumented = true;
 	}
-	
+
 	if(shouldLogMetrics)
 	{
 		Timing::logRatePerSecond(

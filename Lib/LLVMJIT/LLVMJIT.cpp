@@ -66,9 +66,13 @@ namespace LLVMRuntimeSymbols {
 		{"__gxx_personality_v0", (void*)&__gxx_personality_v0},
 		{"__cxa_begin_catch", (void*)&__cxa_begin_catch},
 		{"__cxa_end_catch", (void*)&__cxa_end_catch},
-		{"__afl_area_ptr", (void*)&afl_area_ptr},
-		{"__emutls_v.__afl_prev_loc", (void*)&afl_prev_loc},
+		{"__afl_area_ptr", &afl_area_ptr},
+		{"__emutls_v.__afl_prev_loc", &afl_prev_loc},
 		{"__emutls_get_address", (void*)&fake_emutls},
+		{"__sanitizer_cov_trace_pc_guard", (void*)&trace_pc_guard},
+		{"__sanitizer_cov_trace_pc_guard_init", (void*)&trace_pc_guard_init},
+		{"__start___sancov_guards", &trace_pc_guard_dummy},
+		{"__stop___sancov_guards", &trace_pc_guard_dummy},
 #endif
 	};
 }

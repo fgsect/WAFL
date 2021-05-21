@@ -122,17 +122,40 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 	for(auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt)
 	{ fpm.run(*functionIt); }
 
-	// instrument the module for AFL exactly once
+	// afl: instrument the module once
 	if(!afl_is_instrumented)
 	{
+		char* mode = getenv("AFL_LLVM_INSTRUMENT");
 		llvm::legacy::PassManager passManager;
-		// passManager.add(createAflLlvmPass());
-		// passManager.add(createAflInsTrimPass());
 
-		llvm::SanitizerCoverageOptions options;
-		options.CoverageType = llvm::SanitizerCoverageOptions::SCK_Edge;
-		options.TracePCGuard = true;
-		passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(options));
+		if(mode && strcasestr(mode, "CLASSIC"))
+		{ passManager.add(createAflLlvmPass()); }
+		else if(mode && strcasestr(mode, "CFG"))
+		{ passManager.add(createAflInsTrimPass()); }
+		else
+		{
+			/* LLVM native PCGUARD is the default */
+			llvm::SanitizerCoverageOptions options;
+			options.CoverageType = llvm::SanitizerCoverageOptions::SCK_Edge;
+			options.TracePCGuard = true;
+
+			char* allowlist = getenv("AFL_LLVM_ALLOWLIST");
+			char* denylist = getenv("AFL_LLVM_DENYLIST");
+
+#if LLVM_VERSION_MAJOR > 10 || (LLVM_VERSION_MAJOR == 10 && LLVM_VERSION_MINOR > 0)
+			std::vector<std::string> allowlistFiles;
+			std::vector<std::string> blocklistFiles;
+			if(allowlist) { allowlistFiles.push_back(std::string(allowlist)); }
+			if(denylist) { blocklistFiles.push_back(std::string(denylist)); }
+
+			passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(
+				options, allowlistFiles, blocklistFiles));
+#else
+			if(allowlist || denylist)
+				fprintf(stderr, "allow and deny lists not supported in LLVM < 10.0.1, ignoring.\n");
+			passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(options));
+#endif
+		}
 
 		passManager.run(llvmModule);
 		afl_is_instrumented = true;
@@ -306,7 +329,9 @@ std::string LLVMJIT::disassembleObject(const TargetSpec& targetSpec,
 #if LLVM_VERSION_MAJOR >= 9
 			if(llvm::Expected<llvm::StringRef> maybeSectionContents
 			   = (*symbolSection)->getContents())
-			{ sectionContents = maybeSectionContents.get(); }
+			{
+				sectionContents = maybeSectionContents.get();
+			}
 #else
 			(*symbolSection)->getContents(sectionContents);
 #endif

@@ -142,7 +142,7 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 			char* allowlist = getenv("AFL_LLVM_ALLOWLIST");
 			char* denylist = getenv("AFL_LLVM_DENYLIST");
 
-#if LLVM_VERSION_MAJOR > 10 || (LLVM_VERSION_MAJOR == 10 && LLVM_VERSION_MINOR > 0)
+#if LLVM_VERSION_MAJOR >= 11
 			std::vector<std::string> allowlistFiles;
 			std::vector<std::string> blocklistFiles;
 			if(allowlist) { allowlistFiles.push_back(std::string(allowlist)); }
@@ -152,7 +152,7 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 				options, allowlistFiles, blocklistFiles));
 #else
 			if(allowlist || denylist)
-				fprintf(stderr, "allow and deny lists not supported in LLVM < 10.0.1, ignoring.\n");
+				fprintf(stderr, "allow and deny lists not supported in LLVM < 11, ignoring.\n");
 			passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(options));
 #endif
 		}

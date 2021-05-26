@@ -173,11 +173,6 @@ bool afl_persistent_loop(uint32_t max_cnt)
 	return false;
 }
 
-/* Instead of invoking __emutls_get_address(), just return the input.
-   This is only used for afl_prev_loc to support resets in persistent mode.
-   Since it is declared thread-local, there should be no concurrency issues. */
-void* fake_emutls(void* ptr) { return ptr == afl_prev_loc ? ptr : NULL; }
-
 /* callback for LLVM's trace_pc_guard instrumentation */
 void trace_pc_guard(uint32_t* guard)
 {

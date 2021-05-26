@@ -39,8 +39,6 @@ extern uint32_t afl_prev_ctx;
 void afl_init();
 bool afl_persistent_loop(uint32_t max_cnt);
 
-void* fake_emutls(void* ptr);
-
 void trace_pc_guard(uint32_t* guard);
 void trace_pc_guard_init(uint32_t* start, uint32_t* stop);
 extern uint32_t trace_pc_guard_dummy;

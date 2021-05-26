@@ -33,7 +33,8 @@ typedef uint16_t PREV_LOC_T;
 extern bool afl_is_instrumented;
 
 extern uint8_t* afl_area_ptr;
-extern __thread PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
+extern PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
+extern uint32_t afl_prev_ctx;
 
 void afl_init();
 bool afl_persistent_loop(uint32_t max_cnt);

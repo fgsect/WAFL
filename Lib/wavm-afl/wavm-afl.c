@@ -15,7 +15,8 @@ bool afl_is_instrumented = false;
 
 static uint8_t afl_area_ptr_dummy[MAP_SIZE];
 uint8_t* afl_area_ptr = afl_area_ptr_dummy;
-__thread PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
+PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
+uint32_t afl_prev_ctx;
 
 static bool is_persistent;
 

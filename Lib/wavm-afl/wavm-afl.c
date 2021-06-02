@@ -200,6 +200,44 @@ void trace_pc_guard_init(uint32_t* start, uint32_t* stop)
 	exit(EXIT_FAILURE);
 }
 
+/* parse the AFL_LLVM_INSTRUMENT environment variable into afl_options */
+struct afl_options afl_parse_env()
+{
+	/* native pcguard mode, no NGRAM, no CTX set as default */
+	struct afl_options opt = {native, 0, false};
+
+	if(getenv("AFL_LLVM_INSTRUMENT"))
+	{
+		for(char* token = strtok(getenv("AFL_LLVM_INSTRUMENT"), ":,;"); token != NULL;
+			token = strtok(NULL, ":,;"))
+		{
+			if(strncasecmp(token, "classic", strlen("classic")) == 0)
+			{ opt.instr_mode = classic; }
+			else if(strncasecmp(token, "cfg", strlen("cfg")) == 0)
+			{ opt.instr_mode = cfg;	}
+			else if(strncasecmp(token, "native", strlen("native")) == 0)
+			{ opt.instr_mode = native; }
+			else if(strncasecmp(token, "ctx", strlen("ctx")) == 0)
+			{ opt.ctx_enabled = true; }
+			else if(strncasecmp(token, "ngram-", strlen("ngram-")) == 0)
+			{
+				opt.ngram_size = strtoul(token + strlen("ngram-"), NULL, 10);
+				if(opt.ngram_size < 2 || opt.ngram_size > NGRAM_SIZE_MAX)
+				{
+					fprintf(stderr, "error: NGRAM size must be between 2 and %u\n", NGRAM_SIZE_MAX);
+					exit(EXIT_FAILURE);
+				}
+			}
+			else
+			{
+				fprintf(stderr, "warning: instrumentation option \"%s\" not recognized\n", token);
+			}
+		}
+	}
+
+	return opt;
+}
+
 /* DEBUG */
 void afl_print_map()
 {
@@ -216,4 +254,12 @@ void afl_print_map()
 		}
 	}
 	printf("=== TOTAL %i CELLS: %li ===\n", cnt, sum);
+}
+
+void afl_print_prevloc()
+{
+	printf("afl_prev_loc:");
+	for(size_t i = 0; i < NGRAM_SIZE_MAX; i++) { printf(" %u", afl_prev_loc[i]); }
+	printf("\n");
+	printf("afl_prev_ctx: %u\n", afl_prev_ctx);
 }

@@ -125,16 +125,15 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 	// afl: instrument the module once
 	if(!afl_is_instrumented)
 	{
-		char* mode = getenv("AFL_LLVM_INSTRUMENT");
 		llvm::legacy::PassManager passManager;
+		struct afl_options opt = afl_parse_env();
 
-		if(mode && strcasestr(mode, "CLASSIC"))
-		{ passManager.add(createAflLlvmPass()); }
-		else if(mode && strcasestr(mode, "CFG"))
-		{ passManager.add(createAflInsTrimPass()); }
-		else
+		/* decide which instrumentation pass to use */
+		switch(opt.instr_mode)
 		{
-			/* LLVM native PCGUARD is the default */
+		case afl_options::mode::classic: passManager.add(createAflLlvmPass()); break;
+		case afl_options::mode::cfg: passManager.add(createAflInsTrimPass()); break;
+		case afl_options::mode::native: {
 			llvm::SanitizerCoverageOptions options;
 			options.CoverageType = llvm::SanitizerCoverageOptions::SCK_Edge;
 			options.TracePCGuard = true;
@@ -156,7 +155,20 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 			passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(options));
 #endif
 		}
+		break;
+		default: break;
+		}
 
+		/* NGRAM and CTX settings are passed as environment variables */
+		if(opt.ngram_size != 0)
+		{
+			char ngram_str[4];
+			snprintf(ngram_str, 4, "%u", opt.ngram_size);
+			setenv("AFL_LLVM_NGRAM_SIZE", ngram_str, 1);
+		}
+		if(opt.ctx_enabled) { setenv("AFL_LLVM_CALLER", "1", 1); }
+
+		/* instrument */
 		passManager.run(llvmModule);
 		afl_is_instrumented = true;
 	}

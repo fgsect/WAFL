@@ -29,6 +29,18 @@ extern "C" {
 typedef uint16_t PREV_LOC_T;
 #define NGRAM_SIZE_MAX 16U
 
+struct afl_options
+{
+	enum mode
+	{
+		classic, // traditional afl instrumentation
+		cfg,     // control flow graph instrumentation, aka InsTrim
+		native   // LLVM's trace_pc_guard
+	} instr_mode;
+	uint8_t ngram_size;
+	bool ctx_enabled;
+};
+
 // prevent instrumenting more than once
 extern bool afl_is_instrumented;
 
@@ -38,6 +50,7 @@ extern uint32_t afl_prev_ctx;
 
 void afl_init();
 bool afl_persistent_loop(uint32_t max_cnt);
+struct afl_options afl_parse_env();
 
 void trace_pc_guard(uint32_t* guard);
 void trace_pc_guard_init(uint32_t* start, uint32_t* stop);

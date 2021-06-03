@@ -18,6 +18,11 @@ uint8_t* afl_area_ptr = afl_area_ptr_dummy;
 PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
 uint32_t afl_prev_ctx;
 
+static bool afl_sharedmem_fuzzing = true;
+static uint8_t* afl_fuzz_ptr;
+static uint32_t afl_fuzz_len_dummy;
+static uint32_t* afl_fuzz_len = &afl_fuzz_len_dummy;
+
 static bool is_persistent;
 
 uint32_t trace_pc_guard_dummy;
@@ -41,16 +46,66 @@ void afl_map_shm()
 	}
 }
 
+void afl_map_shm_fuzz()
+{
+	char* id_str = getenv(SHM_FUZZ_ENV_VAR);
+
+	if(id_str)
+	{
+		uint32_t shm_id = atoi(id_str);
+		uint8_t* map = shmat(shm_id, NULL, 0);
+
+		/* Whooooops. */
+
+		if(!map || map == (void*)-1)
+		{
+			perror("afl_map_shm_fuzz(): shmat failed.");
+			exit(EXIT_FAILURE);
+		}
+
+		afl_fuzz_len = (uint32_t*)map;
+		afl_fuzz_ptr = map + sizeof(uint32_t);
+	}
+	else
+	{
+		fprintf(stderr, "afl_map_shm_fuzz(): %s not set\n", SHM_FUZZ_ENV_VAR);
+		exit(EXIT_FAILURE);
+	}
+}
+
 void afl_start_forkserver()
 {
+	bool already_read_first = false;
 	uint32_t flags = 0;
 	if(MAP_SIZE <= FS_OPT_MAX_MAPSIZE) { flags |= (FS_OPT_MAPSIZE | FS_OPT_SET_MAPSIZE(MAP_SIZE)); }
+	if(afl_sharedmem_fuzzing) { flags |= FS_OPT_SHDMEM_FUZZ; }
 	if(flags) { flags |= FS_OPT_ENABLED; }
 
 	/* Phone home and tell the parent that we're OK. If parent isn't there,
 	   assume we're not running in forkserver mode and just execute program. */
 
-	if(write(FORKSRV_FD + 1, &flags, 4) != 4) return;
+	if(write(FORKSRV_FD + 1, &flags, 4) != 4)
+	{
+		afl_sharedmem_fuzzing = false;
+		return;
+	}
+
+	if(afl_sharedmem_fuzzing)
+	{
+		flags = 0;
+		if(read(FORKSRV_FD, &flags, 4) != 4) exit(EXIT_FAILURE);
+
+		if((flags & (FS_OPT_ENABLED | FS_OPT_SHDMEM_FUZZ)) == (FS_OPT_ENABLED | FS_OPT_SHDMEM_FUZZ))
+		{
+			/* parent agreed to shmem fuzzing */
+			afl_map_shm_fuzz();
+		}
+		else
+		{
+			afl_sharedmem_fuzzing = false;
+			already_read_first = true;
+		}
+	}
 
 	pid_t child_pid = -1;
 	bool child_stopped = false;
@@ -61,7 +116,11 @@ void afl_start_forkserver()
 
 		/* Wait for parent by reading from the pipe. Abort if read fails. */
 
-		if(read(FORKSRV_FD, &status, 4) != 4) exit(EXIT_FAILURE);
+		if(already_read_first) { already_read_first = false; }
+		else
+		{
+			if(read(FORKSRV_FD, &status, 4) != 4) exit(EXIT_FAILURE);
+		}
 
 		/* If we stopped the child in persistent mode, but there was a race
 		   condition and afl-fuzz already issued SIGKILL, write off the old
@@ -135,6 +194,7 @@ bool afl_persistent_loop(uint32_t max_cnt)
 {
 	static bool first_pass = true;
 	static uint32_t cycle_cnt;
+	printf("loop cycle cnt: %u\n", cycle_cnt);
 
 	if(first_pass)
 	{
@@ -171,6 +231,36 @@ bool afl_persistent_loop(uint32_t max_cnt)
 	}
 
 	return false;
+}
+
+/* if shmem fuzzing is active, put received input in a pipe to replace stdin */
+void afl_fetch_input()
+{
+	if(afl_sharedmem_fuzzing)
+	{
+		printf("fetching new input (%u bytes)\n", *afl_fuzz_len);
+
+		int pipefd[2];
+		if(pipe(pipefd) != 0)
+		{
+			perror("afl_fetch_input(): pipe() failed");
+			exit(EXIT_FAILURE);
+		}
+
+		if(dup2(pipefd[0], 0) != 0)
+		{
+			perror("afl_fetch_input(): dup2() failed");
+			exit(EXIT_FAILURE);
+		}
+		close(pipefd[0]);
+
+		if(write(pipefd[1], afl_fuzz_ptr, *afl_fuzz_len) != *afl_fuzz_len)
+		{
+			perror("afl_fetch_input(): vmsplice() failed");
+			exit(EXIT_FAILURE);
+		}
+		close(pipefd[1]);
+	}
 }
 
 /* callback for LLVM's trace_pc_guard instrumentation */

@@ -1,10 +1,11 @@
 // created by Keno Hassler, 2020
 
+#include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/shm.h>
+#include <sys/mman.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -29,40 +30,53 @@ uint32_t trace_pc_guard_dummy;
 
 void afl_map_shm()
 {
-	char* id_str = getenv(SHM_ENV_VAR);
+	const char* shm_file_path = getenv(SHM_ENV_VAR);
 
-	if(id_str)
+	if(shm_file_path)
 	{
-		uint32_t shm_id = atoi(id_str);
-		afl_area_ptr = (uint8_t*)shmat(shm_id, NULL, 0);
-
-		/* Whooooops. */
-
-		if(!afl_area_ptr || afl_area_ptr == (void*)-1)
+		/* open the shared memory segment with read/write permissions */
+		const int shm_fd = shm_open(shm_file_path, O_RDWR, DEFAULT_PERMISSION);
+		if(shm_fd == -1)
 		{
-			perror("afl_map_shm(): shmat failed.");
+			perror("afl_map_shm(): shm_open failed");
 			exit(EXIT_FAILURE);
 		}
+
+		/* map the shared memory read/writeable (MAP_SIZE bytes) */
+		afl_area_ptr = mmap(NULL, MAP_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
+		if(afl_area_ptr == MAP_FAILED)
+		{
+			perror("afl_map_shm(): mmap failed");
+			exit(EXIT_FAILURE);
+		}
+
+		close(shm_fd);
 	}
 }
 
 void afl_map_shm_fuzz()
 {
-	char* id_str = getenv(SHM_FUZZ_ENV_VAR);
+	const char* shm_file_path = getenv(SHM_FUZZ_ENV_VAR);
 
-	if(id_str)
+	if(shm_file_path)
 	{
-		uint32_t shm_id = atoi(id_str);
-		uint8_t* map = shmat(shm_id, NULL, 0);
-
-		/* Whooooops. */
-
-		if(!map || map == (void*)-1)
+		/* open the shared memory segment with read-only permission */
+		const int shm_fd = shm_open(shm_file_path, O_RDONLY, DEFAULT_PERMISSION);
+		if(shm_fd == -1)
 		{
-			perror("afl_map_shm_fuzz(): shmat failed.");
+			perror("afl_map_shm_fuzz(): shm_open failed");
 			exit(EXIT_FAILURE);
 		}
 
+		/* map the shared memory readable (32-bit length + max. file size) */
+		uint8_t* map = mmap(NULL, MAX_FILE + sizeof(uint32_t), PROT_READ, MAP_SHARED, shm_fd, 0);
+		if(map == MAP_FAILED)
+		{
+			perror("afl_map_shm_fuzz(): mmap failed");
+			exit(EXIT_FAILURE);
+		}
+
+		close(shm_fd);
 		afl_fuzz_len = (uint32_t*)map;
 		afl_fuzz_ptr = map + sizeof(uint32_t);
 	}
@@ -256,7 +270,7 @@ void afl_fetch_input()
 
 		if(write(pipefd[1], afl_fuzz_ptr, *afl_fuzz_len) != *afl_fuzz_len)
 		{
-			perror("afl_fetch_input(): vmsplice() failed");
+			perror("afl_fetch_input(): write() failed");
 			exit(EXIT_FAILURE);
 		}
 		close(pipefd[1]);
@@ -286,7 +300,7 @@ void trace_pc_guard(uint32_t* guard)
 /* callback stub for init */
 void trace_pc_guard_init(uint32_t* start, uint32_t* stop)
 {
-	fprintf(stderr, "trace_pc_guard_init not implemented\n");
+	fprintf(stderr, "trace_pc_guard_init() not implemented\n");
 	exit(EXIT_FAILURE);
 }
 

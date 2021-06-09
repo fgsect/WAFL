@@ -209,7 +209,7 @@ bool afl_persistent_loop(uint32_t max_cnt)
 {
 	static bool first_pass = true;
 	static uint32_t cycle_cnt;
-	printf("loop cycle cnt: %u\n", cycle_cnt);
+	// printf("loop cycle cnt: %u\n", cycle_cnt);
 
 	if(first_pass)
 	{
@@ -292,7 +292,6 @@ void afl_fetch_input()
 /* callback for LLVM's trace_pc_guard instrumentation */
 void trace_pc_guard(uint32_t* guard)
 {
-	printf("trace_pc_guard called with guard=%u", *guard);
 	if(*guard == 0)
 	{
 		/* The proper init function is never called, so all guards are 0 initially.
@@ -303,9 +302,8 @@ void trace_pc_guard(uint32_t* guard)
 
 		const uintptr_t guard_id = (uintptr_t)&trace_pc_guard_dummy - (uintptr_t)guard;
 		*guard = (guard_id >> 2) & (MAP_SIZE - 1);
-		printf(" -> initialized to %u, id was %lx", *guard, guard_id);
 	}
-	printf("\n");
+
 	afl_area_ptr[*guard]++;
 }
 

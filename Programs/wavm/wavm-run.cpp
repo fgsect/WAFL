@@ -856,7 +856,7 @@ struct State
 			}
 
 			restoreSnapshot(compartment, memBackup, numPagesBackup);
-			printRuntimeData(compartment);
+			// printRuntimeData(compartment);
 		}
 
 		Timing::logTimer("Executed program", executionTimer);

@@ -457,12 +457,12 @@ void memrestore(Memory* mem, uint8_t* buf, const uintptr_t n)
 
 	if(n > old_numPages)
 	{
-		printf("memrestore: growing memory from %lu to %lu pages\n", old_numPages, n);
+		// printf("memrestore: growing memory from %lu to %lu pages\n", old_numPages, n);
 		growMemory(mem, n - old_numPages, NULL);
 	}
 	else if(n < old_numPages)
 	{
-		printf("memrestore: shrinking memory from %lu to %lu pages\n", old_numPages, n);
+		// printf("memrestore: shrinking memory from %lu to %lu pages\n", old_numPages, n);
 		unmapMemoryPages(mem, n, old_numPages - n);
 	}
 

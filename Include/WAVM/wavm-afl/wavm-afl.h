@@ -15,24 +15,28 @@ extern "C" {
 #define MAP_SIZE (1 << MAP_SIZE_POW2)
 #define SHM_ENV_VAR "__AFL_SHM_ID"
 #define FORKSRV_FD 198
-#define PERSIST_SIG "##SIG_AFL_PERSISTENT##"
 #define PERSIST_ENV_VAR "__AFL_PERSISTENT"
 #define SHM_FUZZ_ENV_VAR "__AFL_SHM_FUZZ_ID"
+#define MAX_FILE (1 * 1024 * 1024U)
+#define DEFAULT_PERMISSION 0600
 
 /* from types.h */
 #define FS_OPT_ENABLED 0x80000001
 #define FS_OPT_MAPSIZE 0x40000000
-#define FS_OPT_SNAPSHOT 0x20000000
-#define FS_OPT_AUTODICT 0x10000000
 #define FS_OPT_SHDMEM_FUZZ 0x01000000
-#define FS_OPT_OLD_AFLPP_WORKAROUND 0x0f000000
 // FS_OPT_MAX_MAPSIZE is 8388608 = 0x800000 = 2^23 = 1 << 22
 #define FS_OPT_MAX_MAPSIZE ((0x00fffffe >> 1) + 1)
 #define FS_OPT_GET_MAPSIZE(x) (((x & 0x00fffffe) >> 1) + 1)
 #define FS_OPT_SET_MAPSIZE(x) (x <= 1 || x > FS_OPT_MAX_MAPSIZE ? 0 : ((x - 1) << 1))
 
 /* from llvm-alternative-coverage.h */
+#if(MAP_SIZE_POW2 <= 16)
 typedef uint16_t PREV_LOC_T;
+#elif(MAP_SIZE_POW2 <= 32)
+typedef uint32_t PREV_LOC_T;
+#else
+typedef uint64_t PREV_LOC_T;
+#endif
 #define NGRAM_SIZE_MAX 16U
 
 struct afl_options

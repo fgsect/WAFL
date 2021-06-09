@@ -841,7 +841,7 @@ struct State
 		int result;
 
 		afl_init();
-		while(afl_persistent_loop(10000))
+		while(afl_persistent_loop(INT_MAX))
 		{
 			afl_fetch_input();
 

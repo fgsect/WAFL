@@ -6,7 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
-#include <sys/uio.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -24,6 +23,7 @@ static bool afl_sharedmem_fuzzing = true;
 static uint8_t* afl_fuzz_ptr;
 static uint32_t afl_fuzz_len_dummy;
 static uint32_t* afl_fuzz_len = &afl_fuzz_len_dummy;
+static FILE* afl_input;
 
 static bool is_persistent;
 
@@ -224,6 +224,7 @@ bool afl_persistent_loop(uint32_t max_cnt)
 		cycle_cnt = max_cnt;
 		first_pass = false;
 
+		if(afl_sharedmem_fuzzing) afl_input = fmemopen(afl_fuzz_ptr, *afl_fuzz_len, "r");
 		return true;
 	}
 
@@ -235,6 +236,12 @@ bool afl_persistent_loop(uint32_t max_cnt)
 
 			afl_area_ptr[0] = 1;
 			memset(afl_prev_loc, 0, NGRAM_SIZE_MAX * sizeof(PREV_LOC_T));
+
+			if(afl_sharedmem_fuzzing)
+			{
+				fclose(afl_input);
+				afl_input = fmemopen(afl_fuzz_ptr, *afl_fuzz_len, "r");
+			}
 
 			return true;
 		}
@@ -248,45 +255,17 @@ bool afl_persistent_loop(uint32_t max_cnt)
 	return false;
 }
 
-/* if shmem fuzzing is active, put received input in a pipe to replace stdin */
-void afl_fetch_input()
+/* if shmem fuzzing is enabled, read from the shared map instead of stdin */
+ssize_t afl_readv(int fd, const struct iovec* buffers, int numBuffers)
 {
-	if(afl_sharedmem_fuzzing)
+	ssize_t num_read = -1;
+	if(fd == 0 && afl_sharedmem_fuzzing)
 	{
-		int pipefd[2];
-		if(pipe(pipefd) != 0)
-		{
-			perror("afl_fetch_input() failed creating pipe");
-			exit(EXIT_FAILURE);
-		}
-
-		if(dup2(pipefd[0], STDIN_FILENO) != STDIN_FILENO)
-		{
-			perror("afl_fetch_input() failed replacing stdin");
-			exit(EXIT_FAILURE);
-		}
-		close(pipefd[0]);
-
-#ifdef __linux__
-		/* resize pipe buffer to our needs (max. 1M possible) */
-		if(fcntl(pipefd[1], F_SETPIPE_SZ, *afl_fuzz_len) == -1)
-		{
-			perror("afl_fetch_input() failed resizing pipe buffer");
-			exit(EXIT_FAILURE);
-		}
-
-		/* avoid unnecessary copying, should benefit larger inputs */
-		struct iovec iov = {afl_fuzz_ptr, *afl_fuzz_len};
-		if(vmsplice(pipefd[1], &iov, 1, 0) != *afl_fuzz_len)
-#else
-		if(write(pipefd[1], afl_fuzz_ptr, *afl_fuzz_len) != *afl_fuzz_len)
-#endif
-		{
-			perror("afl_fetch_input() failed writing to pipe");
-			exit(EXIT_FAILURE);
-		}
-		close(pipefd[1]);
+		num_read = 0;
+		for(int i = 0; i < numBuffers; i++)
+		{ num_read += fread(buffers[i].iov_base, 1, buffers[i].iov_len, afl_input); }
 	}
+	return num_read;
 }
 
 /* callback for LLVM's trace_pc_guard instrumentation */

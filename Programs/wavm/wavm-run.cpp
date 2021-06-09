@@ -843,8 +843,6 @@ struct State
 		afl_init();
 		while(afl_persistent_loop(INT_MAX))
 		{
-			afl_fetch_input();
-
 			if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
 			else if(wasiProcess)
 			{

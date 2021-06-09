@@ -21,6 +21,9 @@
 #include "WAVM/Platform/Mutex.h"
 #include "WAVM/VFS/VFS.h"
 
+// afl patch
+#include "WAVM/wavm-afl/wavm-afl.h"
+
 #define FILE_OFFSET_IS_64BIT (sizeof(off_t) == 8)
 
 using namespace WAVM;
@@ -306,8 +309,13 @@ struct POSIXFD : VFD
 
 		if(offset == nullptr)
 		{
-			// Do the read.
-			ssize_t result = ::readv(fd, (const struct iovec*)buffers, numBuffers);
+			ssize_t result;
+			if((result = afl_readv(fd, (const struct iovec*)buffers, numBuffers)) == -1)
+			{
+				// Do the read.
+				result = ::readv(fd, (const struct iovec*)buffers, numBuffers);
+			}
+
 			if(result == -1) { return asVFSResult(errno); }
 
 			if(outNumBytesRead) { *outNumBytesRead = result; }

@@ -61,7 +61,7 @@ extern uint32_t afl_prev_ctx;
 void afl_init();
 bool afl_persistent_loop(uint32_t max_cnt);
 struct afl_options afl_parse_env();
-void afl_fetch_input();
+ssize_t afl_readv(int fd, const struct iovec* buffers, int numBuffers);
 
 void trace_pc_guard(uint32_t* guard);
 void trace_pc_guard_init(uint32_t* start, uint32_t* stop);

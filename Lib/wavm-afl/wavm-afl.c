@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <sys/uio.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -252,25 +253,36 @@ void afl_fetch_input()
 {
 	if(afl_sharedmem_fuzzing)
 	{
-		printf("fetching new input (%u bytes)\n", *afl_fuzz_len);
-
 		int pipefd[2];
 		if(pipe(pipefd) != 0)
 		{
-			perror("afl_fetch_input(): pipe() failed");
+			perror("afl_fetch_input() failed creating pipe");
 			exit(EXIT_FAILURE);
 		}
 
-		if(dup2(pipefd[0], 0) != 0)
+		if(dup2(pipefd[0], STDIN_FILENO) != STDIN_FILENO)
 		{
-			perror("afl_fetch_input(): dup2() failed");
+			perror("afl_fetch_input() failed replacing stdin");
 			exit(EXIT_FAILURE);
 		}
 		close(pipefd[0]);
 
-		if(write(pipefd[1], afl_fuzz_ptr, *afl_fuzz_len) != *afl_fuzz_len)
+#ifdef __linux__
+		/* resize pipe buffer to our needs (max. 1M possible) */
+		if(fcntl(pipefd[1], F_SETPIPE_SZ, *afl_fuzz_len) == -1)
 		{
-			perror("afl_fetch_input(): write() failed");
+			perror("afl_fetch_input() failed resizing pipe buffer");
+			exit(EXIT_FAILURE);
+		}
+
+		/* avoid unnecessary copying, should benefit larger inputs */
+		struct iovec iov = {afl_fuzz_ptr, *afl_fuzz_len};
+		if(vmsplice(pipefd[1], &iov, 1, 0) != *afl_fuzz_len)
+#else
+		if(write(pipefd[1], afl_fuzz_ptr, *afl_fuzz_len) != *afl_fuzz_len)
+#endif
+		{
+			perror("afl_fetch_input() failed writing to pipe");
 			exit(EXIT_FAILURE);
 		}
 		close(pipefd[1]);

@@ -224,7 +224,7 @@ bool afl_persistent_loop(uint32_t max_cnt)
 		cycle_cnt = max_cnt;
 		first_pass = false;
 
-		if(afl_sharedmem_fuzzing) afl_input = fmemopen(afl_fuzz_ptr, *afl_fuzz_len, "r");
+		if(afl_sharedmem_fuzzing) { afl_input = fmemopen(afl_fuzz_ptr, *afl_fuzz_len, "r"); }
 		return true;
 	}
 
@@ -252,6 +252,7 @@ bool afl_persistent_loop(uint32_t max_cnt)
 		}
 	}
 
+	if(afl_sharedmem_fuzzing) { fclose(afl_input); }
 	return false;
 }
 
@@ -304,14 +305,19 @@ struct afl_options afl_parse_env()
 		for(char* token = strtok(getenv("AFL_LLVM_INSTRUMENT"), ":,;"); token != NULL;
 			token = strtok(NULL, ":,;"))
 		{
-			if(strncasecmp(token, "classic", strlen("classic")) == 0)
-			{ opt.instr_mode = classic; }
+			if(strncasecmp(token, "classic", strlen("classic")) == 0) { opt.instr_mode = classic; }
 			else if(strncasecmp(token, "cfg", strlen("cfg")) == 0)
-			{ opt.instr_mode = cfg;	}
+			{
+				opt.instr_mode = cfg;
+			}
 			else if(strncasecmp(token, "native", strlen("native")) == 0)
-			{ opt.instr_mode = native; }
+			{
+				opt.instr_mode = native;
+			}
 			else if(strncasecmp(token, "ctx", strlen("ctx")) == 0)
-			{ opt.ctx_enabled = true; }
+			{
+				opt.ctx_enabled = true;
+			}
 			else if(strncasecmp(token, "ngram-", strlen("ngram-")) == 0)
 			{
 				opt.ngram_size = strtoul(token + strlen("ngram-"), NULL, 10);

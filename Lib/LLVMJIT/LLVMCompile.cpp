@@ -138,8 +138,8 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 			options.CoverageType = llvm::SanitizerCoverageOptions::SCK_Edge;
 			options.TracePCGuard = true;
 
-			char* allowlist = getenv("AFL_LLVM_ALLOWLIST");
-			char* denylist = getenv("AFL_LLVM_DENYLIST");
+			const char* allowlist = getenv("AFL_LLVM_ALLOWLIST");
+			const char* denylist = getenv("AFL_LLVM_DENYLIST");
 
 #if LLVM_VERSION_MAJOR >= 11
 			std::vector<std::string> allowlistFiles;

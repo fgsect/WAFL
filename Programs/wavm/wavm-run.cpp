@@ -833,7 +833,7 @@ struct State
 
 		std::unique_ptr<uint8_t> memBackup;
 		uintptr_t numPagesBackup = createSnapshot(compartment, memBackup);
-		printRuntimeData(compartment);
+		// printRuntimeData(compartment);
 
 		// Execute the program.
 		Timing::Timer executionTimer;

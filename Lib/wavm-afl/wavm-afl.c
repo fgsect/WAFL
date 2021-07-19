@@ -19,12 +19,12 @@ uint8_t* afl_area_ptr = afl_area_ptr_dummy;
 PREV_LOC_T afl_prev_loc[NGRAM_SIZE_MAX];
 uint32_t afl_prev_ctx;
 
-static bool afl_sharedmem_fuzzing = true;
 static uint8_t* afl_fuzz_ptr;
 static uint32_t afl_fuzz_len_dummy;
 static uint32_t* afl_fuzz_len = &afl_fuzz_len_dummy;
-static FILE* afl_input;
 
+static FILE* afl_input;
+static bool afl_sharedmem_fuzzing;
 static bool is_persistent;
 
 uint32_t trace_pc_guard_dummy;
@@ -197,12 +197,15 @@ void afl_init()
 	if(!init_done)
 	{
 		is_persistent = getenv(PERSIST_ENV_VAR);
+		afl_sharedmem_fuzzing = getenv("__AFL_SHM_FUZZ");
 		afl_map_shm();
 		afl_start_forkserver();
 		init_done = true;
 	}
 
-	printf("finished afl_init, persistent mode %s\n", is_persistent ? "enabled" : "disabled");
+	printf("[+] WAVM initialised, persistent mode %s, shmem fuzzing %s.\n",
+		   is_persistent ? "enabled" : "disabled",
+		   afl_sharedmem_fuzzing ? "enabled" : "disabled");
 }
 
 bool afl_persistent_loop(uint32_t max_cnt)
@@ -264,7 +267,9 @@ ssize_t afl_readv(int fd, const struct iovec* buffers, int numBuffers)
 	{
 		num_read = 0;
 		for(int i = 0; i < numBuffers; i++)
-		{ num_read += fread(buffers[i].iov_base, 1, buffers[i].iov_len, afl_input); }
+		{
+			num_read += fread(buffers[i].iov_base, 1, buffers[i].iov_len, afl_input);
+		}
 	}
 	return num_read;
 }

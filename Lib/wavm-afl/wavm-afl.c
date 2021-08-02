@@ -310,7 +310,11 @@ struct afl_options afl_parse_env()
 		for(char* token = strtok(getenv("AFL_LLVM_INSTRUMENT"), ":,;"); token != NULL;
 			token = strtok(NULL, ":,;"))
 		{
-			if(strncasecmp(token, "classic", strlen("classic")) == 0) { opt.instr_mode = classic; }
+			if(strncasecmp(token, "none", strlen("none")) == 0) { opt.instr_mode = none; }
+			else if(strncasecmp(token, "classic", strlen("classic")) == 0)
+			{
+				opt.instr_mode = classic;
+			}
 			else if(strncasecmp(token, "cfg", strlen("cfg")) == 0)
 			{
 				opt.instr_mode = cfg;

@@ -11,6 +11,8 @@
 #include "WAVM/Runtime/Runtime.h"
 #include "WAVM/RuntimeABI/RuntimeABI.h"
 
+#include "WAVM/wavm-afl/wavm-afl.h"
+
 using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::Runtime;
@@ -84,15 +86,22 @@ void Runtime::invokeFunction(Context* context,
 	invokeContext.outResults = outResults;
 	invokeContext.invokeThunk = invokeThunk;
 
-	// Use unwindSignalsAsExceptions to ensure that any signal that occurs in WebAssembly code calls
-	// C++ destructors on the stack between here and where it is caught.
-	unwindSignalsAsExceptions([&invokeContext] {
-		ContextRuntimeData* contextRuntimeData = getContextRuntimeData(invokeContext.context);
+	std::unique_ptr<uint8_t> memBackup;
+	uintptr_t numPagesBackup = createSnapshot(getCompartment(context), memBackup);
+	afl_init();
+	while (afl_persistent_loop(INT_MAX)) {
+		// Use unwindSignalsAsExceptions to ensure that any signal that occurs in WebAssembly code calls
+		// C++ destructors on the stack between here and where it is caught.
+		unwindSignalsAsExceptions([&invokeContext] {
+			ContextRuntimeData* contextRuntimeData = getContextRuntimeData(invokeContext.context);
 
-		// Call the invoke thunk.
-		(*invokeContext.invokeThunk)(invokeContext.function,
-									 contextRuntimeData,
-									 invokeContext.arguments,
-									 invokeContext.outResults);
-	});
+			// Call the invoke thunk.
+			(*invokeContext.invokeThunk)(invokeContext.function,
+										contextRuntimeData,
+										invokeContext.arguments,
+										invokeContext.outResults);
+		});
+
+		restoreSnapshot(getCompartment(context), memBackup, numPagesBackup);
+	}
 }

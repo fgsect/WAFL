@@ -33,9 +33,6 @@
 #include "WAVM/WASTParse/WASTParse.h"
 #include "wavm.h"
 
-// afl patch
-#include "WAVM/wavm-afl/wavm-afl.h"
-
 using namespace WAVM;
 using namespace WAVM::IR;
 using namespace WAVM::Runtime;
@@ -149,11 +146,6 @@ static bool loadPrecompiledModule(std::vector<U8>&& fileBytes,
 	{
 		// Load the IR + precompiled object code as a runtime module.
 		outModule = Runtime::loadPrecompiledModule(irModule, precompiledObjectSection->data);
-
-		// afl patch
-		printf("loaded precompiled code, assuming it's already instrumented\n");
-		afl_is_instrumented = true;
-
 		return true;
 	}
 }
@@ -831,32 +823,19 @@ struct State
 			WASI::setProcessMemory(*wasiProcess, memory);
 		}
 
-		std::unique_ptr<uint8_t> memBackup;
-		uintptr_t numPagesBackup = createSnapshot(compartment, memBackup);
-		// printRuntimeData(compartment);
-
 		// Execute the program.
 		Timing::Timer executionTimer;
 		auto executeThunk = [&] { return execute(irModule, instance); };
 		int result;
-
-		afl_init();
-		while(afl_persistent_loop(INT_MAX))
+		if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
+		else if(wasiProcess)
 		{
-			if(emscriptenProcess) { result = Emscripten::catchExit(std::move(executeThunk)); }
-			else if(wasiProcess)
-			{
-				result = WASI::catchExit(std::move(executeThunk));
-			}
-			else
-			{
-				result = executeThunk();
-			}
-
-			restoreSnapshot(compartment, memBackup, numPagesBackup);
-			// printRuntimeData(compartment);
+			result = WASI::catchExit(std::move(executeThunk));
 		}
-
+		else
+		{
+			result = executeThunk();
+		}
 		Timing::logTimer("Executed program", executionTimer);
 
 		// Log the peak memory usage.

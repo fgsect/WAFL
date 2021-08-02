@@ -43,6 +43,7 @@ struct afl_options
 {
 	enum mode
 	{
+		none,    // don't instrument (useful when loading with --precompiled)
 		classic, // traditional afl instrumentation
 		cfg,     // control flow graph instrumentation, aka InsTrim
 		native   // LLVM's trace_pc_guard

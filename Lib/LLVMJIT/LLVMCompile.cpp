@@ -131,6 +131,9 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 		/* decide which instrumentation pass to use */
 		switch(opt.instr_mode)
 		{
+		case afl_options::mode::none:
+			printf("[+] No instrumentation added, use --precompiled if desired.\n");
+			break;
 		case afl_options::mode::classic: passManager.add(createAflLlvmPass()); break;
 		case afl_options::mode::cfg: passManager.add(createAflInsTrimPass()); break;
 		case afl_options::mode::native: {
@@ -140,6 +143,9 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 
 			const char* allowlist = getenv("AFL_LLVM_ALLOWLIST");
 			const char* denylist = getenv("AFL_LLVM_DENYLIST");
+			printf("[*] Creating LLVM SanitizerCoverage pass (allowlist: %s, denylist: %s)...\n",
+				   allowlist ? allowlist : "none",
+				   denylist ? denylist : "none");
 
 #if LLVM_VERSION_MAJOR >= 11
 			std::vector<std::string> allowlistFiles;
@@ -151,7 +157,7 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 				options, allowlistFiles, blocklistFiles));
 #else
 			if(allowlist || denylist)
-				fprintf(stderr, "allow and deny lists not supported in LLVM < 11, ignoring.\n");
+				fprintf(stderr, "[!] LLVM < 11 does not support allow-/denylists; ignoring.\n");
 			passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(options));
 #endif
 		}

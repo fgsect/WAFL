@@ -1,3 +1,6 @@
+# Copyright 2021 Keno Hassler
+# SPDX-License-Identifier: Apache-2.0
+
 set(Sources
 	wavm-afl.c)
 

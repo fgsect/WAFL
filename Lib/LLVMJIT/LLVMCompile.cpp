@@ -347,9 +347,7 @@ std::string LLVMJIT::disassembleObject(const TargetSpec& targetSpec,
 #if LLVM_VERSION_MAJOR >= 9
 			if(llvm::Expected<llvm::StringRef> maybeSectionContents
 			   = (*symbolSection)->getContents())
-			{
-				sectionContents = maybeSectionContents.get();
-			}
+			{ sectionContents = maybeSectionContents.get(); }
 #else
 			(*symbolSection)->getContents(sectionContents);
 #endif

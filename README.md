@@ -71,3 +71,9 @@ Afterwards, fuzz the precompiled binary and turn off instrumentation:
 ```
 AFL_LLVM_INSTRUMENT=none AFL_SKIP_BIN_CHECK=1 ./afl-fuzz -i <INDIR> -o <OUTDIR> ../build/bin/wavm run --precompiled <COMPILED>
 ```
+
+### License
+
+WAVM is available under a [3-Clause BSD](LICENSE.txt) license and uses
+third-party software under [various licenses](THIRD-PARTY.md).
+AFL++ components are licensed under the [Apache License 2.0](AFLplusplus/LICENSE).

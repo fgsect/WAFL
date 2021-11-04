@@ -8,7 +8,7 @@ and [AFL++](https://github.com/AFLplusplus/AFLplusplus).
 
 You'll need Git, CMake, the LLVM development libraries and a C++ compiler.
 ```
-sudo apt install build-essential cmake llvm-11-dev 
+sudo apt install build-essential cmake llvm-11-dev
 ```
 Then, clone this repository including its AFL++ submodule and compile AFL++.
 ```
@@ -46,14 +46,14 @@ performance considerably!
 
 Some aspects of WAFL can be controlled using environment variables.
 
-|                   | Environment Variable  | Options                         | 
-|-------------------|-----------------------|---------------------------------|
-| Snapshot & Reset  | `__AFL_PERSISTENT`    | `0` (default) or `1`            |
-| Shared Mem. Input | `__AFL_SHM_FUZZ`      | `0` (default) or `1`            |
-| Allowlist         | `AFL_LLVM_ALLOWLIST`  | Path to allowlist               |
-| Denylist [^1]     | `AFL_LLVM_DENYLIST`   | Path to denylist (e.g. [wasi-blocklist.txt](wasi-blocklist.txt)) |
-| Instrumentation   | `AFL_LLVM_INSTRUMENT` | `classic`, `cfg`, `native` (default), `none` |
-| Context / N-Gram  | `AFL_LLVM_INSTRUMENT` | `ctx`, `ngram-x` (x in [2..16]) |
+|                     | Environment Variable | Options                         |
+|---------------------|----------------------|---------------------------------|
+| Snapshot & Reset    | `__AFL_PERSISTENT`   | `0` (default) or `1`            |
+| Shared Mem. Input   | `__AFL_SHM_FUZZ`     | `0` (default) or `1`            |
+| Allowlist           | `AFL_LLVM_ALLOWLIST` | Path to allowlist               |
+| Denylist            | `AFL_LLVM_DENYLIST`  | Path to denylist (e.g. [wasi-blocklist.txt](wasi-blocklist.txt)) |
+| Instrumentation     | `AFL_LLVM_INSTRUMENT`| `classic`, `cfg`, `native` (default), `none` |
+| Context / N-Gram[^1]| `AFL_LLVM_INSTRUMENT`| `ctx`, `ngram-x` (x in [2..16]) |
 
 [^1]: Must be combined with Classic or CFG instrumentation
 (separate multiple options with `,`).

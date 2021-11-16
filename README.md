@@ -4,6 +4,8 @@
 Binary-only fuzzer for WebAssembly (WASI), based on [WAVM](https://github.com/WAVM/WAVM)
 and [AFL++](https://github.com/AFLplusplus/AFLplusplus).
 
+![schematic overview](wafl.png)
+
 ## Building
 
 You'll need Clang, CMake and Git, plus the Zlib and LLVM development libraries.

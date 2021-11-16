@@ -4,23 +4,25 @@
 Binary-only fuzzer for WebAssembly (WASI), based on [WAVM](https://github.com/WAVM/WAVM)
 and [AFL++](https://github.com/AFLplusplus/AFLplusplus).
 
+![schematic overview](wafl.png)
+
 ## Building
 
-You'll need Git, CMake, the LLVM development libraries and a C++ compiler.
+You'll need Clang, CMake and Git, plus the Zlib and LLVM development libraries.
 ```
-sudo apt install build-essential cmake llvm-11-dev
+sudo apt install clang cmake git llvm-dev zlib1g-dev
 ```
 Then, clone this repository including its AFL++ submodule and compile AFL++.
 ```
-git clone --recurse-submodules https://github.com/fgsect/WAFL
-cd WAFL/AFLplusplus
+git clone https://github.com/fgsect/WAFL
+cd WAFL
+git submodule update --init
+cd AFLplusplus
 make WAFL_MODE=1 TEST_MMAP=1
 ```
 Next, we'll compile the WAVM part.
 ```
-cd ..
-mkdir build
-cd build
+mkdir ../build && cd ../build
 ln -s ../AFLplusplus/afl-llvm-pass.so
 ln -s ../AFLplusplus/libLLVMInsTrim.so
 cmake .. -DCMAKE_BUILD_TYPE=Release
@@ -62,7 +64,7 @@ Some aspects of WAFL can be controlled using environment variables.
 
 WAVM provides us with an option to separate compilation (and instrumentation)
 from execution. This can be useful for large binaries.
-The Allow-/Denylist and Instrumentation (incl. Context / NGRAM) environment
+The Allow-/Denylist and Instrumentation (incl. Context / N-Gram) environment
 variables shown above can be applied here.
 ```
 ../build/bin/wavm compile <WASM FILE> <COMPILED>

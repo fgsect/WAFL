@@ -1,8 +1,12 @@
+[![License](https://img.shields.io/github/license/fgsect/wafl)](LICENSE.txt)
+[![Paper](https://img.shields.io/badge/paper-pdf-brightgreen)](paper.pdf)
+[![Talk](https://img.shields.io/badge/talk-pdf-brightgreen)](WAFL@ROOTS21.pdf)
+[![DOI](https://img.shields.io/badge/doi-10.1145/3503921.3503924-blue)](https://doi.org/10.1145/3503921.3503924)
 
 # WAFL
 
-Binary-only fuzzer for WebAssembly (WASI), based on [WAVM](https://github.com/WAVM/WAVM)
-and [AFL++](https://github.com/AFLplusplus/AFLplusplus).
+Source code for the WASI fuzzer presented in "WAFL: Binary-Only WebAssembly Fuzzing with Fast Snapshots",
+based on [WAVM](https://github.com/WAVM/WAVM) and [AFL++](https://github.com/AFLplusplus/AFLplusplus).
 
 ![schematic overview](wafl.png)
 
@@ -78,4 +82,4 @@ AFL_LLVM_INSTRUMENT=none AFL_SKIP_BIN_CHECK=1 ./afl-fuzz -i <INDIR> -o <OUTDIR> 
 
 WAVM is available under a [3-Clause BSD](LICENSE.txt) license and uses
 third-party software under [various licenses](THIRD-PARTY.md).
-AFL++ components are licensed under the [Apache License 2.0](AFLplusplus/LICENSE).
+WAFL components based on AFL++ (files in `Lib/wavm-afl` and `Include/WAVM/wavm-afl`) are licensed under the [Apache License 2.0](https://github.com/AFLplusplus/AFLplusplus/blob/stable/LICENSE).

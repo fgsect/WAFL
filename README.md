@@ -5,7 +5,7 @@
 
 # WAFL
 
-Source code for the WASI binary fuzzer presented in "WAFL: Binary-Only WebAssembly Fuzzing with Fast Snapshots",
+Source code for the WASI fuzzer presented in "WAFL: Binary-Only WebAssembly Fuzzing with Fast Snapshots",
 based on [WAVM](https://github.com/WAVM/WAVM) and [AFL++](https://github.com/AFLplusplus/AFLplusplus).
 
 ![schematic overview](wafl.png)

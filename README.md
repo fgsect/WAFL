@@ -1,6 +1,6 @@
 [![License](https://img.shields.io/github/license/fgsect/wafl)](LICENSE.txt)
-[![Paper](https://img.shields.io/badge/paper-pdf-brightgreen)](roots21-3.pdf?raw=true)
-[![Talk](https://img.shields.io/badge/talk-pdf-brightgreen)](WAFL@ROOTS21.pdf?raw=true)
+[![Paper](https://img.shields.io/badge/paper-pdf-brightgreen)](roots21-3.pdf)
+[![Talk](https://img.shields.io/badge/talk-pdf-brightgreen)](WAFL@ROOTS21.pdf)
 [![DOI](https://img.shields.io/badge/doi-10.1145/3503921.3503924-blue)](https://doi.org/10.1145/3503921.3503924)
 
 # WAFL
@@ -8,7 +8,7 @@
 Source code for the WASI fuzzer presented in "WAFL: Binary-Only WebAssembly Fuzzing with Fast Snapshots",
 based on [WAVM](https://github.com/WAVM/WAVM) and [AFL++](https://github.com/AFLplusplus/AFLplusplus).
 
-![schematic overview](wafl.png)
+[![schematic overview](wafl.png)](roots21-3.pdf?raw=true)
 
 ## Building
 

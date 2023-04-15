@@ -47,7 +47,7 @@ POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
 // afl: forward declarations for shared library
 llvm::ModulePass* createAflLlvmPass();
-llvm::ModulePass* createAflInsTrimPass();
+llvm::ModulePass* createAflPCGUARDPass();
 
 namespace llvm {
 	class MCContext;
@@ -135,7 +135,7 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 			printf("[+] No instrumentation added, use --precompiled if desired.\n");
 			break;
 		case afl_options::mode::classic: passManager.add(createAflLlvmPass()); break;
-		case afl_options::mode::cfg: passManager.add(createAflInsTrimPass()); break;
+		case afl_options::mode::cfg: passManager.add(createAflPCGUARDPass()); break;
 		case afl_options::mode::native: {
 			llvm::SanitizerCoverageOptions options;
 			options.CoverageType = llvm::SanitizerCoverageOptions::SCK_Edge;

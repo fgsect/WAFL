@@ -28,7 +28,7 @@ Next, we'll compile the WAVM part.
 ```
 mkdir ../build && cd ../build
 ln -s ../AFLplusplus/afl-llvm-pass.so
-ln -s ../AFLplusplus/libLLVMInsTrim.so
+ln -s ../AFLplusplus/SanitizerCoveragePCGUARD.so
 cmake .. -DCMAKE_BUILD_TYPE=Release
 make wavm -j8
 ```

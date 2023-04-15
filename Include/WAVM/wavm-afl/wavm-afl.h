@@ -64,7 +64,7 @@ struct afl_options
 	{
 		none,    // don't instrument (useful when loading with --precompiled)
 		classic, // traditional afl instrumentation
-		cfg,     // control flow graph instrumentation, aka InsTrim
+		cfg,     // control flow graph instrumentation (PCGUARD)
 		native   // LLVM's trace_pc_guard
 	} instr_mode;
 	uint8_t ngram_size;

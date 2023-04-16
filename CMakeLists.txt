@@ -763,10 +763,10 @@ add_custom_target(RootFiles SOURCES
 	vs-chromium-project.txt
 	WebAssembly.tmLanguage)
 
-add_library(afl-llvm-pass SHARED IMPORTED GLOBAL)
-set_target_properties(afl-llvm-pass PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/afl-llvm-pass.so)
-target_link_libraries(libWAVM PRIVATE afl-llvm-pass)
+# add_library(afl-llvm-pass SHARED IMPORTED GLOBAL)
+# set_target_properties(afl-llvm-pass PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/afl-llvm-pass.so)
+# target_link_libraries(libWAVM PRIVATE afl-llvm-pass)
 
-add_library(SanitizerCoveragePCGUARD SHARED IMPORTED GLOBAL)
-set_target_properties(SanitizerCoveragePCGUARD PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/SanitizerCoveragePCGUARD.so)
-target_link_libraries(libWAVM PRIVATE SanitizerCoveragePCGUARD)
+# add_library(SanitizerCoveragePCGUARD SHARED IMPORTED GLOBAL)
+# set_target_properties(SanitizerCoveragePCGUARD PROPERTIES IMPORTED_LOCATION ${CMAKE_BINARY_DIR}/SanitizerCoveragePCGUARD.so)
+# target_link_libraries(libWAVM PRIVATE SanitizerCoveragePCGUARD)

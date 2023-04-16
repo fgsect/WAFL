@@ -46,8 +46,11 @@ POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #include <llvm/Transforms/Instrumentation/SanitizerCoverage.h>
 
 // afl: forward declarations for shared library
-llvm::ModulePass* createAflLlvmPass();
-llvm::ModulePass* createAflPCGUARDPass();
+#include <llvm/Passes/PassBuilder.h>
+#include <llvm/Passes/PassPlugin.h>
+#include <unistd.h>
+// void* createAflLlvmPass();
+// void* createAflPCGUARDPass();
 
 namespace llvm {
 	class MCContext;
@@ -120,13 +123,52 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 
 	fpm.doInitialization();
 	for(auto functionIt = llvmModule.begin(); functionIt != llvmModule.end(); ++functionIt)
-	{ fpm.run(*functionIt); }
+	{
+		fpm.run(*functionIt);
+	}
 
 	// afl: instrument the module once
 	if(!afl_is_instrumented)
 	{
-		llvm::legacy::PassManager passManager;
+		/* pass manager boilerplate, copied from https://llvm.org/docs/NewPassManager.html */
+		// Create the analysis managers.
+		llvm::LoopAnalysisManager LAM;
+		llvm::FunctionAnalysisManager FAM;
+		llvm::CGSCCAnalysisManager CGAM;
+		llvm::ModuleAnalysisManager MAM;
+
+		// Create the new pass manager builder.
+		// Take a look at the PassBuilder constructor parameters for more
+		// customization, e.g. specifying a TargetMachine or various debugging
+		// options.
+		llvm::PassBuilder PB;
+
+		// Register all the basic analyses with the managers.
+		PB.registerModuleAnalyses(MAM);
+		PB.registerCGSCCAnalyses(CGAM);
+		PB.registerFunctionAnalyses(FAM);
+		PB.registerLoopAnalyses(LAM);
+		PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+		// llvm::legacy::PassManager passManager;
 		struct afl_options opt = afl_parse_env();
+
+		/* NGRAM and CTX settings are passed as environment variables */
+		if(opt.ngram_size != 0)
+		{
+			char ngram_str[4];
+			snprintf(ngram_str, 4, "%u", opt.ngram_size);
+			setenv("AFL_LLVM_NGRAM_SIZE", ngram_str, 1);
+		}
+		if(opt.ctx_enabled) { setenv("AFL_LLVM_CALLER", "1", 1); }
+
+		/* for library loading */
+		char* cwd = getcwd(NULL, 0);
+		if(!cwd)
+		{
+			perror("getcwd");
+			return;
+		}
 
 		/* decide which instrumentation pass to use */
 		switch(opt.instr_mode)
@@ -134,8 +176,44 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 		case afl_options::mode::none:
 			printf("[+] No instrumentation added, use --precompiled if desired.\n");
 			break;
-		case afl_options::mode::classic: passManager.add(createAflLlvmPass()); break;
-		case afl_options::mode::cfg: passManager.add(createAflPCGUARDPass()); break;
+		case afl_options::mode::classic: {
+			auto Plugin = llvm::PassPlugin::Load(std::string(cwd) + "/afl-llvm-pass.so");
+			if(!Plugin)
+			{
+				auto err = Plugin.takeError();
+				llvm::errs() << "[-] Loading the PCGUARD pass failed: " << err << "\n";
+				return;
+			}
+			// Register plugin extensions in PassBuilder.
+			Plugin->registerPassBuilderCallbacks(PB);
+
+			// Create the pass manager.
+			// This one corresponds to a typical -O2 optimization pipeline.
+			llvm::ModulePassManager MPM
+				= PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+
+			MPM.run(llvmModule, MAM);
+			break;
+		}
+		case afl_options::mode::cfg: {
+			auto Plugin = llvm::PassPlugin::Load(std::string(cwd) + "/SanitizerCoveragePCGUARD.so");
+			if(!Plugin)
+			{
+				auto err = Plugin.takeError();
+				llvm::errs() << "[-] Loading the PCGUARD pass failed: " << err << "\n";
+				return;
+			}
+			// Register plugin extensions in PassBuilder.
+			Plugin->registerPassBuilderCallbacks(PB);
+
+			// Create the pass manager.
+			// This one corresponds to a typical -O2 optimization pipeline.
+			llvm::ModulePassManager MPM
+				= PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+
+			MPM.run(llvmModule, MAM);
+			break;
+		}
 		case afl_options::mode::native: {
 			llvm::SanitizerCoverageOptions options;
 			options.CoverageType = llvm::SanitizerCoverageOptions::SCK_Edge;
@@ -153,29 +231,28 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 			if(allowlist) { allowlistFiles.push_back(std::string(allowlist)); }
 			if(denylist) { blocklistFiles.push_back(std::string(denylist)); }
 
-			passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(
-				options, allowlistFiles, blocklistFiles));
+			// Create the pass manager.
+			// This one corresponds to a typical -O2 optimization pipeline.
+			llvm::ModulePassManager MPM
+				= PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+			MPM.addPass(
+				llvm::ModuleSanitizerCoveragePass(options, allowlistFiles, blocklistFiles));
+			MPM.run(llvmModule, MAM);
+			// passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(
+			// 	options, allowlistFiles, blocklistFiles));
+
 #else
 			if(allowlist || denylist)
 				fprintf(stderr, "[!] LLVM < 11 does not support allow-/denylists; ignoring.\n");
 			passManager.add(llvm::createModuleSanitizerCoverageLegacyPassPass(options));
 #endif
+			break;
 		}
-		break;
 		default: break;
 		}
 
-		/* NGRAM and CTX settings are passed as environment variables */
-		if(opt.ngram_size != 0)
-		{
-			char ngram_str[4];
-			snprintf(ngram_str, 4, "%u", opt.ngram_size);
-			setenv("AFL_LLVM_NGRAM_SIZE", ngram_str, 1);
-		}
-		if(opt.ctx_enabled) { setenv("AFL_LLVM_CALLER", "1", 1); }
-
 		/* instrument */
-		passManager.run(llvmModule);
+		// passManager.run(llvmModule);
 		afl_is_instrumented = true;
 	}
 
@@ -347,7 +424,9 @@ std::string LLVMJIT::disassembleObject(const TargetSpec& targetSpec,
 #if LLVM_VERSION_MAJOR >= 9
 			if(llvm::Expected<llvm::StringRef> maybeSectionContents
 			   = (*symbolSection)->getContents())
-			{ sectionContents = maybeSectionContents.get(); }
+			{
+				sectionContents = maybeSectionContents.get();
+			}
 #else
 			(*symbolSection)->getContents(sectionContents);
 #endif

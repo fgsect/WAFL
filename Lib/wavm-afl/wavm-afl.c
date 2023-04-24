@@ -322,7 +322,7 @@ void trace_pc_guard_init(uint32_t* start, uint32_t* stop)
 struct afl_options afl_parse_env()
 {
 	/* native pcguard mode, no NGRAM, no CTX set as default */
-	struct afl_options opt = {native, 0, false};
+	struct afl_options opt = {native, 0, false, NULL, NULL};
 
 	if(getenv("AFL_LLVM_INSTRUMENT"))
 	{
@@ -360,6 +360,15 @@ struct afl_options afl_parse_env()
 				fprintf(stderr, "warning: instrumentation option \"%s\" not recognized\n", token);
 			}
 		}
+	}
+
+	opt.allowlist = getenv("AFL_LLVM_ALLOWLIST");
+	opt.denylist = getenv("AFL_LLVM_DENYLIST");
+	if (!opt.denylist) {
+		opt.denylist = getenv("AFL_LLVM_BLOCKLIST");
+	}
+	if (!!opt.allowlist && !!opt.denylist) {
+		fputs("warning: allowlist AND denylist specified", stderr);
 	}
 
 	return opt;

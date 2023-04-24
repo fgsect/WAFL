@@ -69,6 +69,8 @@ struct afl_options
 	} instr_mode;
 	uint8_t ngram_size;
 	bool ctx_enabled;
+  char* allowlist;
+  char* denylist;
 };
 
 // prevent instrumenting more than once

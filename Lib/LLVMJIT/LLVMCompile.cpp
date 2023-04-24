@@ -40,11 +40,11 @@ PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 POP_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 
 // wafl modifications:
-#include "WAVM/wavm-afl/wavm-afl.h"
-#include <llvm/Transforms/Instrumentation/SanitizerCoverage.h>
 #include <llvm/Passes/PassBuilder.h>
 #include <llvm/Passes/PassPlugin.h>
+#include <llvm/Transforms/Instrumentation/SanitizerCoverage.h>
 #include <filesystem>
+#include "WAVM/wavm-afl/wavm-afl.h"
 
 namespace llvm {
 	class MCContext;
@@ -157,7 +157,7 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 			auto afldir = std::filesystem::current_path();
 			if(afldir.filename() == "bin") { afldir = afldir.parent_path(); }
 			if(afldir.filename() == "build") { afldir = afldir.parent_path(); }
-			afldir = afldir / "AFLplusplus";
+			if(afldir.filename() != "AFLplusplus") { afldir = afldir / "AFLplusplus"; }
 
 			auto Plugin = llvm::PassPlugin::Load("");
 			if(opt.instr_mode == afl_options::mode::classic)
@@ -185,7 +185,7 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 			{
 				auto err = Plugin.takeError();
 				llvm::errs() << "[-] Loading instrumentation pass failed: " << err << "\n";
-				return;
+				exit(EXIT_FAILURE);
 			}
 			// Register plugin extensions in PassBuilder.
 			Plugin->registerPassBuilderCallbacks(PB);

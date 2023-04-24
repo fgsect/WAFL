@@ -322,7 +322,7 @@ void trace_pc_guard_init(uint32_t* start, uint32_t* stop)
 struct afl_options afl_parse_env()
 {
 	/* native pcguard mode, no NGRAM, no CTX set as default */
-	struct afl_options opt = {native, 0, false, NULL, NULL};
+	struct afl_options opt = {native, NULL, NULL};
 
 	if(getenv("AFL_LLVM_INSTRUMENT"))
 	{
@@ -334,26 +334,10 @@ struct afl_options afl_parse_env()
 			{
 				opt.instr_mode = classic;
 			}
-			else if(strncasecmp(token, "cfg", strlen("cfg")) == 0)
-			{
-				opt.instr_mode = cfg;
-			}
+			else if(strncasecmp(token, "lto", strlen("lto")) == 0) { opt.instr_mode = lto; }
 			else if(strncasecmp(token, "native", strlen("native")) == 0)
 			{
 				opt.instr_mode = native;
-			}
-			else if(strncasecmp(token, "ctx", strlen("ctx")) == 0)
-			{
-				opt.ctx_enabled = true;
-			}
-			else if(strncasecmp(token, "ngram-", strlen("ngram-")) == 0)
-			{
-				opt.ngram_size = strtoul(token + strlen("ngram-"), NULL, 10);
-				if(opt.ngram_size < 2 || opt.ngram_size > NGRAM_SIZE_MAX)
-				{
-					fprintf(stderr, "error: NGRAM size must be between 2 and %u\n", NGRAM_SIZE_MAX);
-					exit(EXIT_FAILURE);
-				}
 			}
 			else
 			{
@@ -364,10 +348,9 @@ struct afl_options afl_parse_env()
 
 	opt.allowlist = getenv("AFL_LLVM_ALLOWLIST");
 	opt.denylist = getenv("AFL_LLVM_DENYLIST");
-	if (!opt.denylist) {
-		opt.denylist = getenv("AFL_LLVM_BLOCKLIST");
-	}
-	if (!!opt.allowlist && !!opt.denylist) {
+	if(!opt.denylist) { opt.denylist = getenv("AFL_LLVM_BLOCKLIST"); }
+	if(!!opt.allowlist && !!opt.denylist)
+	{
 		fputs("warning: allowlist AND denylist specified", stderr);
 	}
 

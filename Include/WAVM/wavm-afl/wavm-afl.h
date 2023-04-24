@@ -64,13 +64,11 @@ struct afl_options
 	{
 		none,    // don't instrument (useful when loading with --precompiled)
 		classic, // traditional afl instrumentation
-		cfg,     // control flow graph instrumentation (PCGUARD)
+		lto,     // AFL's PCGuard implementation for LTO
 		native   // LLVM's trace_pc_guard
 	} instr_mode;
-	uint8_t ngram_size;
-	bool ctx_enabled;
-  char* allowlist;
-  char* denylist;
+	char* allowlist;
+	char* denylist;
 };
 
 // prevent instrumenting more than once

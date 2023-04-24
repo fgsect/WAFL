@@ -152,28 +152,15 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 			puts("[+] No instrumentation added, use --precompiled if desired.");
 			break;
 		case afl_options::mode::classic:
-		case afl_options::mode::cfg: {
+		case afl_options::mode::lto: {
 			// path for library loading. assume we are relative to wavm base dir
 			auto afldir = std::filesystem::current_path();
 			if(afldir.filename() == "bin") { afldir = afldir.parent_path(); }
 			if(afldir.filename() == "build") { afldir = afldir.parent_path(); }
 			if(afldir.filename() != "AFLplusplus") { afldir = afldir / "AFLplusplus"; }
 
-			auto Plugin = llvm::PassPlugin::Load("");
-			if(opt.instr_mode == afl_options::mode::classic)
-			{
-				// NGRAM and CTX settings are passed as environment variables
-				if(opt.ngram_size != 0)
-				{
-					char ngram_str[4];
-					snprintf(ngram_str, 4, "%u", opt.ngram_size);
-					setenv("AFL_LLVM_NGRAM_SIZE", ngram_str, 1);
-				}
-				if(opt.ctx_enabled) { setenv("AFL_LLVM_CALLER", "1", 1); }
-
-				Plugin = llvm::PassPlugin::Load(afldir / "afl-llvm-pass.so");
-			}
-			if(opt.instr_mode == afl_options::mode::cfg)
+			auto Plugin = llvm::PassPlugin::Load(afldir / "afl-llvm-pass.so");
+			if(opt.instr_mode == afl_options::mode::lto)
 			{
 				// initializer functions do not work with our LLVMJIT hack.
 				// hence, we set this env - otherwise, the pass will crash

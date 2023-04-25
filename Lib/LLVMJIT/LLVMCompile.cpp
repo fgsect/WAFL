@@ -179,8 +179,13 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 
 			// Create the pass manager.
 			// This one corresponds to a typical -O2 optimization pipeline.
-			llvm::ModulePassManager MPM
-				= PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
+			llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(
+#if LLVM_VERSION_MAJOR >= 14
+				llvm::OptimizationLevel::O2
+#else
+				llvm::PassBuilder::OptimizationLevel::O2
+#endif
+			);
 
 			// instrument
 			MPM.run(llvmModule, MAM);
@@ -202,9 +207,20 @@ static void optimizeLLVMModule(llvm::Module& llvmModule, bool shouldLogMetrics)
 
 			// Create the pass manager.
 			// This one corresponds to a typical -O2 optimization pipeline.
-			llvm::ModulePassManager MPM
-				= PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
-			MPM.addPass(llvm::ModuleSanitizerCoveragePass(options, allowlistFiles, blocklistFiles));
+			llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(
+#if LLVM_VERSION_MAJOR >= 14
+				llvm::OptimizationLevel::O2
+#else
+				llvm::PassBuilder::OptimizationLevel::O2
+#endif
+			);
+			MPM.addPass(llvm::ModuleSanitizerCoveragePass(options
+#if LLVM_VERSION_MAJOR >= 11
+														  ,
+														  allowlistFiles,
+														  blocklistFiles
+#endif
+														  ));
 
 			// instrument
 			MPM.run(llvmModule, MAM);

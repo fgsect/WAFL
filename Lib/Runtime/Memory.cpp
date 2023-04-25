@@ -1,6 +1,7 @@
 #include "WAVM/Platform/Memory.h"
 #include <stdint.h>
 #include <string.h>
+#include <algorithm>
 #include <atomic>
 #include <memory>
 #include <vector>

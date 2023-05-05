@@ -28,6 +28,7 @@ extern "C" {
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/uio.h>
 
 /* from config.h */
 #define MAP_SIZE_POW2 16

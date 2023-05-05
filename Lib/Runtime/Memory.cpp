@@ -477,7 +477,7 @@ uintptr_t Runtime::createSnapshot(Compartment* compartment, std::unique_ptr<uint
 {
 	if(compartment->memories.size() != 1)
 	{
-		fprintf(stderr, "snapshot failed, size=%lu\n", compartment->memories.size());
+		fprintf(stderr, "snapshot failed, size=%lu\n", (uintptr_t) compartment->memories.size());
 		return 0;
 	}
 
@@ -492,7 +492,7 @@ void Runtime::restoreSnapshot(Compartment* compartment,
 {
 	if(compartment->memories.size() != 1)
 	{
-		fprintf(stderr, "restore failed, size=%lu\n", compartment->memories.size());
+		fprintf(stderr, "restore failed, size=%lu\n", (uintptr_t) compartment->memories.size());
 		return;
 	}
 
@@ -511,15 +511,15 @@ void Runtime::printRuntimeData(Compartment* compartment)
 	CompartmentRuntimeData* runtimeData = compartment->runtimeData;
 	printf("====== RUNTIME DATA ======\n");
 
-	printf("memories[%lu]: %p\n", compartment->memories.size(), runtimeData->memories);
+	printf("memories[%lu]: %p\n", (uintptr_t) compartment->memories.size(), runtimeData->memories);
 	for(size_t i = 0; i < compartment->memories.size(); i++)
-	{ printf("%lu\t%lu\n", i, runtimeData->memories[i].numPages.load()); }
+	{ printf("%lu\t%lu\n", i, (uintptr_t) runtimeData->memories[i].numPages.load()); }
 
-	printf("tables[%lu]: %p\n", compartment->tables.size(), runtimeData->tables);
+	printf("tables[%lu]: %p\n", (uintptr_t) compartment->tables.size(), runtimeData->tables);
 	for(size_t i = 0; i < compartment->tables.size(); i++)
-	{ printf("%lu\t%lu\n", i, runtimeData->tables[i].endIndex); }
+	{ printf("%lu\t%lu\n", i, (uintptr_t) runtimeData->tables[i].endIndex); }
 
-	printf("contexts[%lu]: %p\n", compartment->contexts.size(), runtimeData->contexts);
+	printf("contexts[%lu]: %p\n", (uintptr_t) compartment->contexts.size(), runtimeData->contexts);
 	for(size_t i = 0; i < compartment->contexts.size(); i++)
 	{
 		// go through all globals in this context, find the mutable ones, get their values

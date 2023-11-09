@@ -11,9 +11,7 @@ RUN apt-get install -y \
     build-essential \
     cmake \
     libtool \
-    llvm-14 \
-    llvm-14-dev \
-    clang-14 \
+    llvm llvm-dev clang \
     make \
     ninja-build \
     sudo \
@@ -27,16 +25,17 @@ RUN apt-get autoremove -y
 # Copy this code into place
 COPY . /code
 
-# Create a build directory
-WORKDIR /build
-
-RUN cmake -G Ninja /code -DCMAKE_BUILD_TYPE=RelWithDebInfo
-RUN ninja
-RUN ninja install
-RUN patchelf --add-needed /usr/local/lib/libWAVM.so /usr/local/bin/wavm
-
+# Compile and install AFL++
 WORKDIR /code/AFLplusplus
 RUN make WAFL_MODE=1 TEST_MMAP=1 install
+# TODO: wavm expects AFLplusplus instrumentation passes at /AFLplusplus/x-pass.so
+RUN ln -s /code/AFLplusplus /
+
+# Compile and install the WAVM part
+WORKDIR /build
+RUN cmake -G Ninja /code -DCMAKE_BUILD_TYPE=RelWithDebInfo
+RUN ninja && ninja install && \
+    patchelf --add-needed /usr/local/lib/libWAVM.so /usr/local/bin/wavm
 
 
 # setup example program for fuzzing

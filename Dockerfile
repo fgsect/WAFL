@@ -46,15 +46,11 @@ RUN wget -q https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-2
 ENV WASI_SDK_PATH=/wasi-sdk-20.0
 RUN git clone https://github.com/AFLplusplus/fuzzer-challenges
 RUN cd fuzzer-challenges && \
-    /wasi-sdk-20.0/bin/clang -O0 -g --target=wasm32-wasi test-u8.c -D__AFL_COMPILER -o test-u8.wasm
+    /wasi-sdk-20.0/bin/clang -O0 -g --target=wasm32-wasi test-u8.c -o test-u8.wasm /code/standalone.c
 
-RUN cd fuzzer-challenges/libfuzzer && \
-    /wasi-sdk-20.0/bin/clang++ -O0 -g --target=wasm32-wasi SimpleTest.cpp -fno-exceptions -D__AFL_COMPILER -o SimpleTest.wasm
 ENV AFL_SKIP_CPUFREQ=1 AFL_I_DONT_CARE_ABOUT_MISSING_CRASHES=1 AFL_SKIP_BIN_CHECK=1
 RUN mkdir /in && mkdir /out && echo seed > /in/seed
 
 ENV __AFL_PERSISTENT=1 __AFL_SHM_FUZZ=1
 
-# wavm crashes for the C++ SimpleTest.wasm :/
-# CMD afl-fuzz -i /in/ -o /out/ wavm run /fuzzer-challenges/libfuzzer/SimpleTest.wasm
 CMD afl-fuzz -i /in/ -o /out/ wavm run /fuzzer-challenges/test-u8.wasm

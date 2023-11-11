@@ -255,7 +255,7 @@ void LLVMJIT::emitModule(const IR::Module& irModule,
 			asLLVMType(llvmContext, functionType),
 			llvm::Function::ExternalLinkage,
 			functionIndex >= irModule.functions.imports.size()
-				? names.functions[functionIndex].name /* getExternalName("functionDef", functionIndex - irModule.functions.imports.size()) */
+				? std::string("wasm::") + names.functions[functionIndex].name /* getExternalName("functionDef", functionIndex - irModule.functions.imports.size()) */
 				: getExternalName("functionImport", functionIndex),
 			&outLLVMModule);
 		function->setCallingConv(asLLVMCallingConv(functionType.callingConvention()));

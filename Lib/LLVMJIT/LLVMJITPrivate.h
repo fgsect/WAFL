@@ -28,6 +28,8 @@
 
 PUSH_DISABLE_WARNINGS_FOR_LLVM_HEADERS
 #include <llvm/ADT/SmallVector.h>
+#include <llvm/Analysis/ConstantFolding.h>
+#include <llvm/CodeGen/TargetOpcodes.h>
 #include <llvm/Config/llvm-config.h>
 #include <llvm/DebugInfo/DWARF/DWARFContext.h>
 #include <llvm/ExecutionEngine/JITSymbol.h>
@@ -274,22 +276,26 @@ namespace WAVM { namespace LLVMJIT {
 
 	inline llvm::Constant* getMemoryIdFromOffset(llvm::Constant* memoryOffset)
 	{
-		return llvm::ConstantExpr::getExactUDiv(
+		return llvm::ConstantFoldBinaryOpOperands(
+			llvm::TargetOpcode::G_UDIV,
 			llvm::ConstantExpr::getSub(
 				memoryOffset,
 				emitLiteralIptr(offsetof(Runtime::CompartmentRuntimeData, memories),
 								memoryOffset->getType())),
-			emitLiteralIptr(sizeof(Runtime::MemoryRuntimeData), memoryOffset->getType()));
+			emitLiteralIptr(sizeof(Runtime::MemoryRuntimeData), memoryOffset->getType()),
+			llvm::DataLayout(""));
 	}
 
 	inline llvm::Constant* getTableIdFromOffset(llvm::Constant* tableOffset)
 	{
-		return llvm::ConstantExpr::getExactUDiv(
+		return llvm::ConstantFoldBinaryOpOperands(
+			llvm::TargetOpcode::G_UDIV,
 			llvm::ConstantExpr::getSub(
 				tableOffset,
 				emitLiteralIptr(offsetof(Runtime::CompartmentRuntimeData, tables),
 								tableOffset->getType())),
-			emitLiteralIptr(sizeof(Runtime::TableRuntimeData), tableOffset->getType()));
+			emitLiteralIptr(sizeof(Runtime::TableRuntimeData), tableOffset->getType()),
+			llvm::DataLayout(""));
 	}
 
 	inline llvm::Type* getIptrType(LLVMContext& llvmContext, U32 numPointerBytes)

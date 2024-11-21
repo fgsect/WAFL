@@ -53,6 +53,7 @@ namespace LLVMRuntimeSymbols {
 	static HashMap<std::string, void*> map = {
 		{"memmove", (void*)&memmove},
 		{"memset", (void*)&memset},
+		{"memcpy", (void*)&memcpy},
 #ifdef _WIN32
 		{"__chkstk", (void*)&__chkstk},
 		{"__CxxFrameHandler3", (void*)&__CxxFrameHandler3},
